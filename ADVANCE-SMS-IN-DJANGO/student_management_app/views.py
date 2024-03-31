@@ -7,9 +7,6 @@ from django.contrib import messages
 from student_management_app.EmailBackEnd import EmailBackEnd
 
 
-def home(request):
-    return render(request, 'index.html')
-
 
 def loginPage(request):
     return render(request, 'login.html')

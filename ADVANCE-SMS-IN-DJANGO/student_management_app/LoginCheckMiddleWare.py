@@ -10,6 +10,17 @@ class LoginCheckMiddleWare(MiddlewareMixin):
         # print(modulename)
         user = request.user
 
+        public_paths = [
+            reverse("login"), 
+            reverse("doLogin"),
+            reverse("home"),  # Assuming you have a URL name 'home' for your homepage
+            # Add any other paths that should be public here
+        ]
+
+        # Check if the request path is one of the public paths
+        if request.path in public_paths:
+            return None
+
         #Check whether the user is logged in or not
         if user.is_authenticated:
             if user.user_type == "1":
@@ -43,4 +54,4 @@ class LoginCheckMiddleWare(MiddlewareMixin):
             if request.path == reverse("login") or request.path == reverse("doLogin"):
                 pass
             else:
-                return redirect("login")
+                return redirect("home")

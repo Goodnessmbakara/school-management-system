@@ -1,0 +1,46 @@
+/* Custom navbar link hover color */
+
+.navbar-brand img {
+  max-height: 50px; /* Adjust this value as needed */
+  object-fit: contain; /* This will ensure the aspect ratio is preserved */
+  margin-left: 20px; /* Left spacing */
+
+}
+
+/* Custom navbar link hover color */
+.navbar-dark .navbar-nav .nav-link:hover {
+  color: #ffa500; /* Example: orange color on hover */
+}
+
+.hero-carousel {
+  max-width: 100%; /* Limit the maximum width, can be less than 100% for narrower carousels */
+  margin: auto; /* Center the carousel */
+  overflow: hidden; /* Hide overflow */
+}
+
+.hero-carousel .carousel-inner {
+  position: relative;
+}
+
+.hero-carousel .carousel-item {
+  min-height: 500px; /* Adjust minimum height as needed for your design */
+  max-height: 500px; /* Maximum height to ensure it doesn't take the whole page */
+  background: #000; /* Fallback background color */
+}
+
+.hero-carousel .carousel-item img {
+  width: 100%; /* Ensure the image covers the width */
+  max-height: 500px; /* Max height to prevent taking up the whole page */
+  object-fit: cover; /* Cover the area without stretching images */
+  margin: auto; /* Center the image */
+}
+
+.carousel-caption {
+  position: absolute;
+  bottom: 20%; /* Adjust according to your design */
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.5); /* Semi-transparent background for caption */
+  padding: 10px;
+  border-radius: 8px;
+}
