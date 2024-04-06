@@ -8,42 +8,42 @@ from django.core import serializers
 import json
 
 
-from student_management_app.models import CustomUser, Staffs, Courses, Subjects, Students, SessionYearModel, Attendance, AttendanceReport, LeaveReportStaff, FeedBackStaffs, StudentResult
+from student_management_app.models import CustomUser, Staffs, Classes, Subject, Students, SessionYearModel, Attendance, AttendanceReport, LeaveReportStaff, FeedBackStaffs, StudentResult
 
 
 def staff_home(request):
     # Fetching All Students under Staff
 
-    subjects = Subjects.objects.filter(staff_id=request.user.id)
-    course_id_list = []
-    for subject in subjects:
-        course = Courses.objects.get(id=subject.course_id.id)
-        course_id_list.append(course.id)
+    Subject = Subject.objects.filter(staff_id=request.user.id)
+    class_id_list = []
+    for subject in Subject:
+        single_class = Classes.objects.get(id=subject.classes_id.id)
+        class_id_list.append(single_class.id)
     
-    final_course = []
-    # Removing Duplicate Course Id
-    for course_id in course_id_list:
-        if course_id not in final_course:
-            final_course.append(course_id)
+    final_class = []
+    # Removing Duplicate class Id
+    for class_id in class_id_list:
+        if class_id not in final_class:
+            final_class.append(class_id)
     
-    students_count = Students.objects.filter(course_id__in=final_course).count()
-    subject_count = subjects.count()
+    students_count = Students.objects.filter(class_id__in=final_class).count()
+    subject_count = Subject.count()
 
     # Fetch All Attendance Count
-    attendance_count = Attendance.objects.filter(subject_id__in=subjects).count()
+    attendance_count = Attendance.objects.filter(subject_id__in=Subject).count()
     # Fetch All Approve Leave
     staff = Staffs.objects.get(admin=request.user.id)
     leave_count = LeaveReportStaff.objects.filter(staff_id=staff.id, leave_status=1).count()
 
-    #Fetch Attendance Data by Subjects
+    #Fetch Attendance Data by Subject
     subject_list = []
     attendance_list = []
-    for subject in subjects:
+    for subject in Subject:
         attendance_count1 = Attendance.objects.filter(subject_id=subject.id).count()
         subject_list.append(subject.subject_name)
         attendance_list.append(attendance_count1)
 
-    students_attendance = Students.objects.filter(course_id__in=final_course)
+    students_attendance = Students.objects.filter(class_id__in=final_class)
     student_list = []
     student_list_attendance_present = []
     student_list_attendance_absent = []
@@ -70,10 +70,10 @@ def staff_home(request):
 
 
 def staff_take_attendance(request):
-    subjects = Subjects.objects.filter(staff_id=request.user.id)
+    Subject = Subject.objects.filter(staff_id=request.user.id)
     session_years = SessionYearModel.objects.all()
     context = {
-        "subjects": subjects,
+        "Subject": Subject,
         "session_years": session_years
     }
     return render(request, "staff_template/take_attendance_template.html", context)
@@ -141,13 +141,13 @@ def get_students(request):
     subject_id = request.POST.get("subject")
     session_year = request.POST.get("session_year")
 
-    # Students enroll to Course, Course has Subjects
+    # Students enroll to class, class has Subject
     # Getting all data from subject model based on subject_id
-    subject_model = Subjects.objects.get(id=subject_id)
+    subject_model = Subject.objects.get(id=subject_id)
 
     session_model = SessionYearModel.objects.get(id=session_year)
 
-    students = Students.objects.filter(course_id=subject_model.course_id, session_year_id=session_model)
+    students = Students.objects.filter(classes_id=subject_model.classes_id, session_year_id=session_model)
 
     # Only Passing Student Id and Student Name Only
     list_data = []
@@ -170,7 +170,7 @@ def save_attendance_data(request):
     attendance_date = request.POST.get("attendance_date")
     session_year_id = request.POST.get("session_year_id")
 
-    subject_model = Subjects.objects.get(id=subject_id)
+    subject_model = Subject.objects.get(id=subject_id)
     session_year_model = SessionYearModel.objects.get(id=session_year_id)
 
     json_student = json.loads(student_ids)
@@ -195,29 +195,29 @@ def save_attendance_data(request):
 
 
 def staff_update_attendance(request):
-    subjects = Subjects.objects.filter(staff_id=request.user.id)
+    Subject = Subject.objects.filter(staff_id=request.user.id)
     session_years = SessionYearModel.objects.all()
     context = {
-        "subjects": subjects,
+        "Subject": Subject,
         "session_years": session_years
     }
     return render(request, "staff_template/update_attendance_template.html", context)
 
 @csrf_exempt
 def get_attendance_dates(request):
-    
+
 
     # Getting Values from Ajax POST 'Fetch Student'
     subject_id = request.POST.get("subject")
     session_year = request.POST.get("session_year_id")
 
-    # Students enroll to Course, Course has Subjects
+    # Students enroll to class, class has Subject
     # Getting all data from subject model based on subject_id
-    subject_model = Subjects.objects.get(id=subject_id)
+    subject_model = Subject.objects.get(id=subject_id)
 
     session_model = SessionYearModel.objects.get(id=session_year)
 
-    # students = Students.objects.filter(course_id=subject_model.course_id, session_year_id=session_model)
+    # students = Students.objects.filter(class_id=subject_model.class_id, session_year_id=session_model)
     attendance = Attendance.objects.filter(subject_id=subject_model, session_year_id=session_model)
 
     # Only Passing Student Id and Student Name Only
@@ -313,10 +313,10 @@ def staff_profile_update(request):
 
 
 def staff_add_result(request):
-    subjects = Subjects.objects.filter(staff_id=request.user.id)
+    Subject = Subject.objects.filter(staff_id=request.user.id)
     session_years = SessionYearModel.objects.all()
     context = {
-        "subjects": subjects,
+        "Subject": Subject,
         "session_years": session_years,
     }
     return render(request, "staff_template/add_result_template.html", context)
@@ -333,7 +333,7 @@ def staff_add_result_save(request):
         subject_id = request.POST.get('subject')
 
         student_obj = Students.objects.get(admin=student_admin_id)
-        subject_obj = Subjects.objects.get(id=subject_id)
+        subject_obj = Subject.objects.get(id=subject_id)
 
         try:
             # Check if Students Result Already Exists or not
