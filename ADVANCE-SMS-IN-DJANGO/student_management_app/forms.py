@@ -74,16 +74,16 @@ class EditStudentForm(forms.Form):
         for session_year in session_years:
             single_session_year = (session_year.id, str(session_year.session_start_year)+" to "+str(session_year.session_end_year))
             session_year_list.append(single_session_year)
-            
+
     except:
         session_year_list = []
 
-    
+
     gender_list = (
         ('Male','Male'),
         ('Female','Female')
     )
-    
+
     course_id = forms.ChoiceField(label="Course", choices=course_list, widget=forms.Select(attrs={"class":"form-control"}))
     gender = forms.ChoiceField(label="Gender", choices=gender_list, widget=forms.Select(attrs={"class":"form-control"}))
     session_year_id = forms.ChoiceField(label="Session Year", choices=session_year_list, widget=forms.Select(attrs={"class":"form-control"}))
