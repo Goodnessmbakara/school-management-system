@@ -8,7 +8,7 @@ from django.core import serializers
 import json
 from django.shortcuts import get_object_or_404
 
-from student_management_app.models import CustomUser, Staffs, Classes, Subject, Students, SessionYearModel, FeedBackStudent, FeedBackStaffs, LeaveReportStudent, LeaveReportStaff, Attendance, AttendanceReport
+from student_management_app.models import CustomUser, Staffs, Classes,SubClasses, Subject, Students, SessionYearModel, FeedBackStudent, FeedBackStaffs, LeaveReportStudent, LeaveReportStaff, Attendance, AttendanceReport
 from .forms import AddStudentForm, EditStudentForm
 
 
@@ -247,6 +247,62 @@ def delete_class(request, class_id):
     except:
         messages.error(request, "Failed to Delete Class.")
         return redirect('manage_class')
+
+def add_subclass(request, class_id):
+    subclasses = SubClasses.objects.filter(parent_class_id=class_id)
+    if request.method == "POST":
+        parent_class_id = class_id
+        subclass_code = request.POST.get('subclass_code')
+        parent_class = get_object_or_404(Classes, id=parent_class_id)
+        subclass_name = parent_class.class_name  # Deriving subclass name from parent class
+
+        # Creating a new Subclass instance
+        new_subclass = SubClasses.objects.create(
+            parent_class_id=parent_class_id,
+            subclass_name=subclass_name+" "+ subclass_code,
+            subclass_code=subclass_code
+        )
+        # Render the updated list of subclasses to return as response
+        return redirect('manage_subclass', class_id=parent_class.id)
+        # content = render_to_string('partials/_subclass_list.html', {'subclasses': subclasses})
+    return render(request,'hod_template/add_subclass_template.html' )
+
+def edit_subclass(request, subclass_id):
+    subclass = get_object_or_404(SubClasses, id=subclass_id)
+    
+    if request.method == 'POST':
+        subclass_code = request.POST.get('subclass_code')
+        # Update subclass instance. For example:
+        subclass.subclass_code = subclass_code
+        subclass.save()
+        # Redirect to the subclass management page for the parent class.
+        return redirect('manage_subclass', class_id=subclass.parent_class.id)
+    
+    return render(request, 'edit_subclass_template.html', {'subclass': subclass})
+
+def delete_subclass(request, subclass_id):
+    # Fetch the subclass
+    subclass = get_object_or_404(SubClasses, id=subclass_id)
+    
+    # Perform deletion
+    subclass.delete()
+    
+    # Fetch the updated list of subclasses for the parent class
+    parent_class = subclass.parent_class
+    subclasses = parent_class.subclasses.all()
+    
+    # Return the updated list as JSON response
+    subclasses_html = {
+        'subclasses_html': render_to_string('hod_template/_subclass_list.html', {'subclasses': subclasses}, request=request)
+    }
+    
+    return HttpResponse(subclasses_html)
+
+def manage_subclass(request, class_id):
+    parent_class = get_object_or_404(Classes, id=class_id)
+    subclasses = parent_class.subclasses.all()
+    return render(request, 'hod_template/manage_subclass_template.html', {'parent_class': parent_class, 'subclasses': subclasses})
+
 
 
 def manage_session(request):

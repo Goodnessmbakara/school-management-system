@@ -1,0 +1,33 @@
+{% extends 'hod_template/base_template.html' %}
+
+{% block title %}
+    Subclass List
+{% endblock %}
+
+{% block main_content %}
+<!-- Assuming you have a div or any container with an id where this list will be injected -->
+<div id="subclass-list" class="subclass-list-container">
+    <table class="table table-striped">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col">Subclass Name</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for subclass in subclasses %}
+            <tr>
+                <td>{{ subclass.parent_class.class_name }}</td>
+                <td>{{ subclass.subclass_code }}</td>
+                <td>
+                    <button hx-post="{% url 'delete_subclass' subclass.id %}" hx-target="#subclass-list" hx-swap="outerHTML" class="btn btn-danger">Delete</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if not subclasses %}
+        <p class="text-muted">No subclasses found.</p>
+    {% endif %}
+</div>
+{% endblock %}

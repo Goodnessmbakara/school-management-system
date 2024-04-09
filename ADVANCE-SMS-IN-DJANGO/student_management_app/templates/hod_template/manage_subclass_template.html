@@ -1,48 +1,82 @@
 {% extends 'hod_template/base_template.html' %}
 
 {% block page_title %}
-    Manage Subclasses
+    Manage Subclasses for {{ parent_class.class_name }}
 {% endblock page_title %}
 
 {% block main_content %}
+
+{% load static %}
+
 <section class="content">
     <div class="container-fluid">
-        <a class="btn btn-primary" href="#" role="button">+ Add Subclass</a> <!-- Update this link to your add subclass URL -->
+
+        <!-- Link to add a new subclass -->
+        <a class="btn btn-primary" href="{% url 'add_subclass' class_id=parent_class.id %}" role="button">Add Subclass</a>
         <br/>&nbsp;
 
-        <!-- Subclasses Table -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Subclass Details</h3>
+        {% if messages %}
+            <div class="form-group">
+                <div class="col-12">
+                    {% for message in messages %}
+                        {% if message.tags == "error" %}
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-top: 10px;">
+                                {{ message }}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        {% elif message.tags == "success" %}
+                            <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin-top: 10px;">
+                                {{ message }}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
             </div>
-            <div class="card-body table-responsive p-0">
-                <table class="table table-hover text-nowrap">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Subclass Name</th>
-                            <th>Created At</th>
-                            <th>Updated At</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for subclass in subclasses %}
-                        <tr>
-                            <td>{{ subclass.id }}</td>
-                            <td>{{ subclass.subclass_name }}</td>
-                            <td>{{ subclass.created_at }}</td>
-                            <td>{{ subclass.updated_at }}</td>
-                            <td>
-                                <a href="#" class="btn btn-success">Edit</a> <!-- Update with actual edit link -->
-                                <a href="#" class="btn btn-danger">Delete</a> <!-- Update with actual delete link -->
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        {% endif %}
+
+        <div class="row">
+            <div class="col-md-12">
+                <!-- Subclass list table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Subclass Details</h3>
+                    </div>
+                    <div class="card-body table-responsive p-0">
+                        <table class="table table-hover text-nowrap">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Subclass Name</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subclass in subclasses %}
+                                    <tr>
+                                        <td>{{ subclass.id }}</td>
+                                        <td>{{ subclass.subclass_name }}</td>
+                                        <td>
+                                            <!-- Link to edit subclass -->
+                                            <a href="{% url 'edit_subclass' subclass_id=subclass.id %}" class="btn btn-success">Edit</a>
+                                            <!-- Link to delete subclass -->
+                                            <a href="{% url 'delete_subclass' subclass.id %}" hx-target="#subclass-list" hx-swap="outerHTML" class="btn btn-danger">Delete</a>
+
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+
+    </div><!-- /.container-fluid -->
 </section>
+
 {% endblock main_content %}

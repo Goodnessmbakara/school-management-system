@@ -1,0 +1,20 @@
+{% extends 'hod_template/base_template.html' %}
+
+{% block title %}
+    Add Subclass
+{% endblock %}
+
+{% block main_content %}
+<div class="container">
+    <h2>Add Subclass</h2>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="parent_class_id" value="{{ parent_class_id }}">
+        <div class="form-group">
+            <label for="subclass_code">Subclass Code:</label>
+            <input type="text" class="form-control" id="subclass_code" name="subclass_code" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Subclass</button>
+    </form>
+</div>
+{% endblock %}
