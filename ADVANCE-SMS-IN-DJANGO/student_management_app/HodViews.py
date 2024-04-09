@@ -564,7 +564,7 @@ def edit_subject_save(request):
 
             staff = CustomUser.objects.get(id=staff_id)
             subject.staff_id = staff
-            
+
             subject.save()
 
             messages.success(request, "Subject Updated Successfully.")

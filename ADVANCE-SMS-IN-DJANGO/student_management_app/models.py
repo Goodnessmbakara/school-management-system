@@ -6,6 +6,9 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth.models import AbstractUser
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 class SessionYearModel(models.Model):
     id = models.AutoField(primary_key=True)
@@ -44,6 +47,19 @@ class Classes(models.Model):
     class_name = models.CharField(max_length=255)
     class_code = models.CharField(max_length=10, unique=True)
     level = models.CharField(max_length=50, choices=LEVEL_CHOICES)
+
+# models.py
+
+class SubClasses(models.Model):
+    parent_class = models.ForeignKey(Classes, on_delete=models.CASCADE, related_name='subclasses')
+    subclass_name = models.CharField(max_length=255)
+    subclass_code = models.CharField(max_length=10, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.subclass_name
+
 
 class Students(models.Model):
     id = models.AutoField(primary_key=True)
@@ -217,21 +233,33 @@ class StudentResult(models.Model):
 
 # Django Signals
 @receiver(post_save, sender=CustomUser)
-def create_user_profile(sender, instance, created, **kwargs):
+def create_or_update_user_profile(sender, instance, created, **kwargs):
     if created:
+        try:
+            if instance.user_type == 1:
+                AdminHOD.objects.create(admin=instance)
+            elif instance.user_type == 2:
+                Staffs.objects.create(admin=instance)
+            elif instance.user_type == 3:
+                default_class = Classes.objects.first()  # Assumes at least one class exists
+                default_session_year = SessionYearModel.objects.first()  # Assumes at least one session year exists
+
+                if not default_class or not default_session_year:
+                    raise ObjectDoesNotExist("Default Class or SessionYearModel does not exist.")
+
+                Students.objects.create(
+                    admin=instance,
+                    class_id=default_class,
+                    session_year_id=default_session_year,
+                    address="", profile_pic="", gender=""
+                )
+        except ObjectDoesNotExist as e:
+            logger.error(f"Failed to create user profile for {instance.username}: {e}")
+            # Here you can also add additional actions like sending an email notification.
+    else:
         if instance.user_type == 1:
-            AdminHOD.objects.create(admin=instance)
+            instance.adminhod.save()
         elif instance.user_type == 2:
-            Staffs.objects.create(admin=instance)
+            instance.staffs.save()
         elif instance.user_type == 3:
-            Students.objects.create(admin=instance, class_id=Classes.objects.get(id=1), session_year_id=SessionYearModel.objects.get(id=1), address="", profile_pic="", gender="")
-
-
-@receiver(post_save, sender=CustomUser)
-def save_user_profile(sender, instance, **kwargs):
-    if instance.user_type == 1:
-        instance.adminhod.save()
-    elif instance.user_type == 2:
-        instance.staffs.save()
-    elif instance.user_type == 3:
-        instance.students.save()
+            instance.students.save()
