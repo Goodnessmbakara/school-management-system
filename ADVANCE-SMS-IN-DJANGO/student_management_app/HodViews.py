@@ -202,7 +202,7 @@ def add_class_save(request):
 
 
 def manage_class(request):
-    classes = Classes.objects.all()
+    classes = Classes.objects.all().prefetch_related('subclasses')
     context = {
         "classes": classes
     }

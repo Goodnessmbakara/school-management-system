@@ -76,6 +76,10 @@
                                 <td>
                                     <a href="{% url 'edit_class' single_class.id %}" class="btn btn-success">Edit</a> 
                                     <a href="{% url 'delete_class' single_class.id %}" class="btn btn-danger">Delete</a>
+                                    {% if single_class.level != 'Nursery' %}
+                                    <!-- The URL name 'manage_subclass' needs to match the name defined in your urls.py for the subclass management view -->
+                                    <a href="{% url 'manage_subclass' single_class.id %}" class="btn btn-info">Manage Subclasses</a>
+                                    {% endif %}
                                 </td>
                                 </tr>
                                 {% endfor %}
