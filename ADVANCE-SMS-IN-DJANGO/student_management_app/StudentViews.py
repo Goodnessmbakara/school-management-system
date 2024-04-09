@@ -5,7 +5,7 @@ from django.core.files.storage import FileSystemStorage #To upload Profile Pictu
 from django.urls import reverse
 import datetime # To Parse input DateTime into Python Date Time Object
 
-from student_management_app.models import CustomUser, Staffs, Courses, Subjects, Students, Attendance, AttendanceReport, LeaveReportStudent, FeedBackStudent, StudentResult
+from student_management_app.models import CustomUser, Staffs, Classes, Subject, Students, Attendance, AttendanceReport, LeaveReportStudent, FeedBackStudent, StudentResult
 
 
 def student_home(request):
@@ -14,13 +14,13 @@ def student_home(request):
     attendance_present = AttendanceReport.objects.filter(student_id=student_obj, status=True).count()
     attendance_absent = AttendanceReport.objects.filter(student_id=student_obj, status=False).count()
 
-    course_obj = Courses.objects.get(id=student_obj.course_id.id)
-    total_subjects = Subjects.objects.filter(course_id=course_obj).count()
+    class_obj = Classes.objects.get(id=student_obj.class_id.id)
+    total_subject = Subject.objects.filter(class_id=class_obj).count()
 
     subject_name = []
     data_present = []
     data_absent = []
-    subject_data = Subjects.objects.filter(course_id=student_obj.course_id)
+    subject_data = Subject.objects.filter(class_id=student_obj.class_id)
     for subject in subject_data:
         attendance = Attendance.objects.filter(subject_id=subject.id)
         attendance_present_count = AttendanceReport.objects.filter(attendance_id__in=attendance, status=True, student_id=student_obj.id).count()
@@ -33,7 +33,7 @@ def student_home(request):
         "total_attendance": total_attendance,
         "attendance_present": attendance_present,
         "attendance_absent": attendance_absent,
-        "total_subjects": total_subjects,
+        "total_subject": total_subject,
         "subject_name": subject_name,
         "data_present": data_present,
         "data_absent": data_absent
@@ -43,11 +43,10 @@ def student_home(request):
 
 def student_view_attendance(request):
     student = Students.objects.get(admin=request.user.id) # Getting Logged in Student Data
-    course = student.course_id # Getting Course Enrolled of LoggedIn Student
-    # course = Courses.objects.get(id=student.course_id.id) # Getting Course Enrolled of LoggedIn Student
-    subjects = Subjects.objects.filter(course_id=course) # Getting the Subjects of Course Enrolled
+    single_class = student.class_id # Getting class Enrolled of LoggedIn Student
+    subjects = Subject.objects.filter(class_id=single_class) # Getting the Subject of class Enrolled
     context = {
-        "subjects": subjects
+        "Subjects": subjects
     }
     return render(request, "student_template/student_view_attendance.html", context)
 
@@ -67,7 +66,7 @@ def student_view_attendance_post(request):
         end_date_parse = datetime.datetime.strptime(end_date, '%Y-%m-%d').date()
 
         # Getting all the Subject Data based on Selected Subject
-        subject_obj = Subjects.objects.get(id=subject_id)
+        subject_obj = Subject.objects.get(id=subject_id)
         # Getting Logged In User Data
         user_obj = CustomUser.objects.get(id=request.user.id)
         # Getting Student Data Based on Logged in Data

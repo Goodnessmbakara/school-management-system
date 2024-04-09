@@ -57,10 +57,10 @@
                             </div>
 
                             <div class="form-group">
-                                <label>Course </label>
-                                <select class="form-control" name="course">
-                                    {% for course in courses %}
-                                        <option value="{{ course.id }}" {% if course.id == subject.course_id.id %} selected {% endif %}>{{ course.course_name }}</option>
+                                <label>Class </label>
+                                <select class="form-control" name="class">
+                                    {% for single_class in classes %}
+                                        <option value="{{ single_class.id }}" {% if single_class.id == subject.single_class_id.id %} selected {% endif %}>{{ single_class.class_name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>

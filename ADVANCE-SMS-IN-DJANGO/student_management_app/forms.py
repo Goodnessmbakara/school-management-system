@@ -1,6 +1,6 @@
 from django import forms 
 from django.forms import Form
-from student_management_app.models import Courses, SessionYearModel
+from student_management_app.models import Classes, SessionYearModel
 
 
 class DateInput(forms.DateInput):
@@ -15,15 +15,15 @@ class AddStudentForm(forms.Form):
     username = forms.CharField(label="Username", max_length=50, widget=forms.TextInput(attrs={"class":"form-control"}))
     address = forms.CharField(label="Address", max_length=50, widget=forms.TextInput(attrs={"class":"form-control"}))
 
-    #For Displaying Courses
+    #For Displaying Classes
     try:
-        courses = Courses.objects.all()
-        course_list = []
-        for course in courses:
-            single_course = (course.id, course.course_name)
-            course_list.append(single_course)
+        classes = Classes.objects.all()
+        class_list = []
+        for single_class in classes:
+            single_class = (classes.id, classes.class_name)
+            class_list.append(single_class)
     except:
-        course_list = []
+        class_list = []
     
     #For Displaying Session Years
     try:
@@ -41,7 +41,7 @@ class AddStudentForm(forms.Form):
         ('Female','Female')
     )
     
-    course_id = forms.ChoiceField(label="Course", choices=course_list, widget=forms.Select(attrs={"class":"form-control"}))
+    class_id = forms.ChoiceField(label="Class", choices=class_list, widget=forms.Select(attrs={"class":"form-control"}))
     gender = forms.ChoiceField(label="Gender", choices=gender_list, widget=forms.Select(attrs={"class":"form-control"}))
     session_year_id = forms.ChoiceField(label="Session Year", choices=session_year_list, widget=forms.Select(attrs={"class":"form-control"}))
     # session_start_year = forms.DateField(label="Session Start", widget=DateInput(attrs={"class":"form-control"}))
@@ -57,15 +57,15 @@ class EditStudentForm(forms.Form):
     username = forms.CharField(label="Username", max_length=50, widget=forms.TextInput(attrs={"class":"form-control"}))
     address = forms.CharField(label="Address", max_length=50, widget=forms.TextInput(attrs={"class":"form-control"}))
 
-    #For Displaying Courses
+    #For Displaying Classes
     try:
-        courses = Courses.objects.all()
-        course_list = []
-        for course in courses:
-            single_course = (course.id, course.course_name)
-            course_list.append(single_course)
+        classes = Classes.objects.all()
+        classes_list = []
+        for classes in classes:
+            single_class = (classes.id, classes.class_name)
+            classes_list.append(single_class)
     except:
-        course_list = []
+        classes_list = []
 
     #For Displaying Session Years
     try:
@@ -84,7 +84,7 @@ class EditStudentForm(forms.Form):
         ('Female','Female')
     )
 
-    course_id = forms.ChoiceField(label="Course", choices=course_list, widget=forms.Select(attrs={"class":"form-control"}))
+    class_id = forms.ChoiceField(label="Class", choices=classes_list, widget=forms.Select(attrs={"class":"form-control"}))
     gender = forms.ChoiceField(label="Gender", choices=gender_list, widget=forms.Select(attrs={"class":"form-control"}))
     session_year_id = forms.ChoiceField(label="Session Year", choices=session_year_list, widget=forms.Select(attrs={"class":"form-control"}))
     # session_start_year = forms.DateField(label="Session Start", widget=DateInput(attrs={"class":"form-control"}))

@@ -79,22 +79,22 @@
             </li>
 
             <li class="nav-item">
-              {% url 'manage_course' as manage_course %}
-              {% url 'edit_course' course_id=id as edit_course %}
-              <a href="{{ manage_course }}" class="nav-link {% if request.path == manage_course %} active {% endif %} {% if request.path == edit_course %} active {% endif %}">
+              {% url 'manage_class' as manage_class %}
+              {% url 'edit_class' class_id=id as edit_class %}
+              <a href="{{ manage_class }}" class="nav-link {% if request.path == manage_class %} active {% endif %} {% if request.path == edit_class %} active {% endif %}">
                 <i class="nav-icon fas fa-chalkboard"></i>
                 <p>
-                  Manage Course
+                  Manage class
                 </p>
               </a>
             </li>
 
             <li class="nav-item">
-            {% url 'add_course' as add_course %}
-              <a href="{{ add_course }}" class="nav-link {% if request.path == add_course %} active {% endif %}">
+            {% url 'add_class' as add_class %}
+              <a href="{{ add_class }}" class="nav-link {% if request.path == add_class %} active {% endif %}">
                 <i class="nav-icon fas fa-th"></i>
                 <p>
-                  Add Course
+                  Add Class
                 </p>
               </a>
             </li>

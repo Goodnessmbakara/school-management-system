@@ -1,5 +1,6 @@
 {% extends 'hod_template/base_template.html' %}
 
+
 {% block page_title %}
     Add Subject
 {% endblock page_title %}
@@ -57,10 +58,10 @@
                             </div>
 
                             <div class="form-group">
-                                <label>Course </label>
-                                <select class="form-control" name="course">
-                                    {% for course in courses %}
-                                        <option value="{{ course.id }}">{{ course.course_name }}</option>
+                                <label>Class </label>
+                                <select class="form-control" name="class">
+                                    {% for single_class in classes %}
+                                        <option value="{{ single_class.id }}">{{ single_class.class_name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
