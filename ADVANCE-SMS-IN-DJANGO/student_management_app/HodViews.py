@@ -6,6 +6,8 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
 import json
+from .forms import ClassForm
+from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404
 
 from student_management_app.models import CustomUser, Staffs, Classes,SubClasses, Subject, Students, SessionYearModel, FeedBackStudent, FeedBackStaffs, LeaveReportStudent, LeaveReportStaff, Attendance, AttendanceReport
@@ -182,23 +184,29 @@ def delete_staff(request, staff_id):
 
 
 def add_class(request):
-    return render(request, "hod_template/add_class_template.html")
+    form = ClassForm()
+    return render(request, "hod_template/add_class_template.html", {'form': form})
 
 
 def add_class_save(request):
-    if request.method != "POST":
+    if request.method == "POST":
+        form = ClassForm(request.POST)
+        if form.is_valid():
+            try:
+                # Saving form will automatically save the model with all fields.
+                form.save()
+                messages.success(request, "Class Added Successfully!")
+                return redirect('manage_class')
+            except Exception as e:
+                messages.error(request, f"Failed to Add Class! Error: {e}")
+                return redirect('add_class')
+        else:
+            # If the form is not valid, pass the form back to the template to display errors.
+            return redirect('manage_class')
+    else:
         messages.error(request, "Invalid Method!")
         return redirect('add_class')
-    else:
-        single_class = request.POST.get('class')
-        try:
-            class_model = Classes(class_name=single_class)
-            class_model.save()
-            messages.success(request, "Class Added Successfully!")
-            return redirect('add_class')
-        except:
-            messages.error(request, "Failed to Add Class!")
-            return redirect('add_class')
+
 
 
 def manage_class(request):
@@ -283,20 +291,16 @@ def edit_subclass(request, subclass_id):
 def delete_subclass(request, subclass_id):
     # Fetch the subclass
     subclass = get_object_or_404(SubClasses, id=subclass_id)
-    
-    # Perform deletion
-    subclass.delete()
-    
-    # Fetch the updated list of subclasses for the parent class
-    parent_class = subclass.parent_class
-    subclasses = parent_class.subclasses.all()
-    
-    # Return the updated list as JSON response
-    subclasses_html = {
-        'subclasses_html': render_to_string('hod_template/_subclass_list.html', {'subclasses': subclasses}, request=request)
-    }
-    
-    return HttpResponse(subclasses_html)
+    parent_class_id = subclass.parent_class.id
+    try:
+        # Perform deletion
+        subclass.delete()
+        messages.success(request, "SubClass Deleted Successfully.")
+        return redirect('manage_subclass', class_id=parent_class_id)
+    except  Exception as e:
+        messages.error(request, f"Failed to Delete SubClass. Because, {e}")
+        return redirect('manage_subclass', class_id=parent_class_id)
+
 
 def manage_subclass(request, class_id):
     parent_class = get_object_or_404(Classes, id=class_id)

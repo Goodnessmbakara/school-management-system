@@ -55,14 +55,14 @@
                             </div>
                         </div>
                         <!-- /.card-header -->
-                        <div class="card-body table-responsive p-0">
+                        <div class="card-body table-responsive p-0 table-striped table-bordered">
                             <table class="table table-hover text-nowrap">
                             <thead>
                                 <tr>
                                 <th>ID</th>
                                 <th>Class Name</th>
                                 <th>Created At</th>
-                                <th>Updated At</th>
+                                <th>Class Level</th>
                                 <th>Action</th>
                                 </tr>
                             </thead>
@@ -72,7 +72,7 @@
                                 <td>{{ single_class.id }}</td>
                                 <td>{{ single_class.class_name }}</td>
                                 <td>{{ single_class.created_at }}</td>
-                                <td>{{ single_class.updated_at }}</td>
+                                <td>{{ single_class.level }}</td>
                                 <td>
                                     <a href="{% url 'edit_class' single_class.id %}" class="btn btn-success">Edit</a> 
                                     <a href="{% url 'delete_class' single_class.id %}" class="btn btn-danger">Delete</a>

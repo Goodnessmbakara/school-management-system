@@ -1,7 +1,12 @@
 from django import forms 
 from django.forms import Form
-from student_management_app.models import Classes, SessionYearModel
+from student_management_app.models import Classes, SessionYearModel, Classes
 
+
+class ClassForm(forms.ModelForm):
+    class Meta:
+        model = Classes
+        fields = ['class_name', 'level']
 
 class DateInput(forms.DateInput):
     input_type = "date"

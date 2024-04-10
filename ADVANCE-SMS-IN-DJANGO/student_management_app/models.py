@@ -45,8 +45,9 @@ class Classes(models.Model):
     )
     id = models.AutoField(primary_key=True)
     class_name = models.CharField(max_length=255)
-    class_code = models.CharField(max_length=10, unique=True)
     level = models.CharField(max_length=50, choices=LEVEL_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True, null = True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 # models.py
 
