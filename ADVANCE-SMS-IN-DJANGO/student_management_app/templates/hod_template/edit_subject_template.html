@@ -23,7 +23,7 @@
                     <form role="form" method="POST" action="{% url 'edit_subject_save' %}">
                         {% csrf_token %}
 
-                        
+
                                 {% comment %} Display Messages {% endcomment %}
                                 {% if messages %}
                                 <div class="form-group">
@@ -48,7 +48,7 @@
                                 </div>
                                 </div>
                                 {% endif %}
-                            
+
 
                         <div class="card-body">
                             <div class="form-group">
@@ -72,7 +72,7 @@
                                         <option value="{{ staff.id }}" {% if staff.id == subject.staff_id.id %} selected {% endif %}>{{ staff.first_name }} {{ staff.last_name }}</option>
                                     {% endfor %}
                                 </select>
-                                
+
                                 <input type="hidden" name="subject_id" value="{{ subject.id }}" />
                             </div>
 
@@ -80,7 +80,7 @@
                         <!-- /.card-body -->
 
                         <div class="card-footer">
-                        
+
                         <button type="submit" class="btn btn-primary">Update Subject</button>
                         </div>
                     </form>

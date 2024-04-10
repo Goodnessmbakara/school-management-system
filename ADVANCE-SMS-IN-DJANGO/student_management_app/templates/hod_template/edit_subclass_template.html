@@ -1,0 +1,59 @@
+{% extends 'hod_template/base_template.html' %}
+
+{% block page_title %}
+Edit Subclass | #ID : {{ subclass.id }}
+{% endblock page_title %}
+
+{% block main_content %}
+
+{% load static %}
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <!-- General form elements -->
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h3 class="card-title">Edit Subclass</h3>
+                    </div>
+                    <!-- /.card-header -->
+                    <!-- Form start -->
+                    <form role="form" method="POST">
+                        {% csrf_token %}
+                        <!-- Display Messages -->
+                        {% if messages %}
+                        <div class="form-group">
+                            <div class="col-12">
+                                {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="subclass_code">Subclass Code</label>
+                                <input type="text" class="form-control" id="subclass_code" name="subclass_code" value="{{ subclass.subclass_code }}" placeholder="Enter subclass code" required>
+                            </div>
+                        </div>
+                        <!-- /.card-body -->
+
+                        <div class="card-footer">
+                            <button type="submit" class="btn btn-primary">Update Subclass</button>
+                        </div>
+                    </form>
+                </div>
+                <!-- /.card -->
+            </div>
+        </div>
+    </div><!-- /.container-fluid -->
+</section>
+
+{% endblock main_content %}

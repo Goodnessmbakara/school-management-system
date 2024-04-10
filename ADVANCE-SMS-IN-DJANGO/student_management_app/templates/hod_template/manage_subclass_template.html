@@ -59,7 +59,8 @@
                                 {% for subclass in subclasses %}
                                     <tr>
                                         <td>{{ subclass.id }}</td>
-                                        <td>{{ subclass.subclass_name }}</td>
+                                        <td>{{ subclass.subclass_name }} ({{ subclass.subclass_code }})</td>
+
                                         <td>
                                             <!-- Link to edit subclass -->
                                             <a href="{% url 'edit_subclass' subclass_id=subclass.id %}" class="btn btn-success">Edit</a>

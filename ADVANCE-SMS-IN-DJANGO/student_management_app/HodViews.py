@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
 import json
 from .forms import ClassForm
-from django.template.loader import render_to_string
+from django.views.decorators.cache import cache_control
 from django.shortcuts import get_object_or_404
 
 from student_management_app.models import CustomUser, Staffs, Classes,SubClasses, Subject, Students, SessionYearModel, FeedBackStudent, FeedBackStaffs, LeaveReportStudent, LeaveReportStaff, Attendance, AttendanceReport
@@ -267,7 +267,7 @@ def add_subclass(request, class_id):
         # Creating a new Subclass instance
         new_subclass = SubClasses.objects.create(
             parent_class_id=parent_class_id,
-            subclass_name=subclass_name+" "+ subclass_code,
+            subclass_name=subclass_name,
             subclass_code=subclass_code
         )
         # Render the updated list of subclasses to return as response
@@ -286,7 +286,7 @@ def edit_subclass(request, subclass_id):
         # Redirect to the subclass management page for the parent class.
         return redirect('manage_subclass', class_id=subclass.parent_class.id)
     
-    return render(request, 'edit_subclass_template.html', {'subclass': subclass})
+    return render(request, 'hod_template/edit_subclass_template.html', {'subclass': subclass})
 
 def delete_subclass(request, subclass_id):
     # Fetch the subclass
@@ -301,7 +301,7 @@ def delete_subclass(request, subclass_id):
         messages.error(request, f"Failed to Delete SubClass. Because, {e}")
         return redirect('manage_subclass', class_id=parent_class_id)
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def manage_subclass(request, class_id):
     parent_class = get_object_or_404(Classes, id=class_id)
     subclasses = parent_class.subclasses.all()
