@@ -45,10 +45,8 @@
 	<link rel="stylesheet" href="{% static 'custom_style/css/icomoon.css' %}">
 	<!-- Bootstrap  -->
 	<link rel="stylesheet" href="{% static 'custom_style/css/bootstrap.css' %}">
-
 	<!-- Magnific Popup -->
 	<link rel="stylesheet" href="{% static 'custom_style/css/magnific-popup.css' %}">
-
 	<!-- Owl Carousel  -->
 	<link rel="stylesheet" href="{% static 'custom_style/css/owl.carousel.min.css' %}">
 	<link rel="stylesheet" href="{% static 'custom_style/css/owl.theme.default.min.css' %}">
@@ -74,53 +72,53 @@
         <div class="fh5co-loader"></div>
 	
 	<div id="page">
-	<nav class="fh5co-nav" role="navigation">
-		<div class="top">
-			<div class="container">
-				<div class="row">
-					<div class="col-xs-12 text-right">
-						<p class="site">www.carter.gm</p>
-						<p class="num">Call: +220 3456789</p>
-						<ul class="fh5co-social">
-							<li><a href="#"><i class="icon-facebook2"></i></a></li>
-							<li><a href="#"><i class="icon-twitter2"></i></a></li>
-							<li><a href="#"><i class="icon-dribbble2"></i></a></li>
-							<li><a href="#"><i class="icon-github"></i></a></li>
-						</ul>
+		<nav class="fh5co-nav" role="navigation">
+			<div class="top">
+				<div class="container">
+					<div class="row">
+						<div class="col-xs-12 text-right">
+							<p class="site">www.carter.gm</p>
+							<p class="num">Call: +220 3456789</p>
+							<ul class="fh5co-social">
+								<li><a href="#"><i class="icon-facebook2"></i></a></li>
+								<li><a href="#"><i class="icon-twitter2"></i></a></li>
+								<li><a href="#"><i class="icon-dribbble2"></i></a></li>
+								<li><a href="#"><i class="icon-github"></i></a></li>
+							</ul>
+						</div>
 					</div>
 				</div>
 			</div>
-		</div>
-		<div class="top-menu">
-			<div class="container">
-				<div class="row">
-					<div class="col-xs-2">
-						<div id="fh5co-logo"><a href="{% url 'home' %}"><i class="icon-study"></i>Educ<span>.</span></a></div>
+			<div class="top-menu">
+				<div class="container">
+					<div class="row">
+						<div class="col-xs-2">
+							<div id="fh5co-logo"><a href="{% url 'home' %}"><i class="icon-study"></i>Educ<span>.</span></a></div>
+						</div>
+						<div class="col-xs-10 text-right menu-1">
+							<ul>
+								<li class="active"><a href="{% url 'home' %}">Home</a></li>
+								<li><a href="courses.html">Courses</a></li>
+								<li><a href="teacher.html">Teacher</a></li>
+								<li><a href="about.html">About</a></li>
+								<li><a href="pricing.html">Pricing</a></li>
+								<li><a href="blog.html">Blog</a></li>
+								<li><a href="contact.html">Contact</a></li>
+								<li class="btn-cta"><a href="{% url 'login' %}"><span>Login</span></a></li>
+							</ul>
+						</div>
 					</div>
-					<div class="col-xs-10 text-right menu-1">
-						<ul>
-							<li class="active"><a href="{% url 'home' %}">Home</a></li>
-							<li><a href="courses.html">Courses</a></li>
-							<li><a href="teacher.html">Teacher</a></li>
-							<li><a href="about.html">About</a></li>
-							<li><a href="pricing.html">Pricing</a></li>
-							<li><a href="blog.html">Blog</a></li>
-							<li><a href="contact.html">Contact</a></li>
-							<li class="btn-cta"><a href="{% url 'login' %}"><span>Login</span></a></li>
-						</ul>
-					</div>
+					
 				</div>
-				
 			</div>
-		</div>
-	</nav>
+		</nav>
 
+		{% block content %}
+        {% endblock %}
 
+        {% include 'school_website/footer.html' %}
+	</div>
 
-{% block content %}
-
-
-{% endblock %}
 
 <!-- jQuery -->
 <script src="{% static 'custom_style/js/jquery.min.js' %}"></script>
@@ -148,7 +146,7 @@
 
 {% block js %}
 
-{% endblock %}
+{% endblock js %}
 </body>
 </html>
 
