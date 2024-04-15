@@ -76,13 +76,14 @@ class Students(models.Model):
 
 
 class Subject(models.Model):
-    id =models.AutoField(primary_key=True)
     subject_name = models.CharField(max_length=255)
-    class_id = models.ForeignKey(Classes, on_delete=models.CASCADE, default=1) #need to give defauult class
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, )
+    object_id = models.PositiveIntegerField()
+    class_subclass_object = GenericForeignKey('content_type', 'object_id')
     staff_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True, null = True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
-    objects = models.Manager()
+
 
 
 class Grade(models.Model):

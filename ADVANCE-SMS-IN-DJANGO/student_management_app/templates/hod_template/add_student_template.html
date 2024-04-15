@@ -5,105 +5,75 @@
 {% endblock page_title %}
 
 {% block main_content %}
-
 {% load static %}
 
 <section class="content">
-        <div class="container-fluid">
-
-            <div class="row">
-                <div class="col-md-12">
-                    <!-- general form elements -->
-                    <div class="card card-primary">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <!-- general form elements -->
+                <div class="card card-primary">
                     <div class="card-header">
                         <h3 class="card-title">Add Student</h3>
                     </div>
-                    <!-- /.card-header -->
                     <!-- form start -->
-                    {% url 'add_student_save' as action_path %}
-                    {% include 'hod_template/form_template.html' with messages=messages form=form action_path=action_path button_text="Add Student" %}
-
-                    </div>
-                    <!-- /.card -->
-
+                    <form role="form" method="POST" action="{% url 'add_student_save' %}" enctype="multipart/form-data" hx-post="{% url 'add_student_save' %}" hx-target="#addStudentForm" hx-swap="outerHTML">
+                        {% csrf_token %}
+                        <div id="addStudentForm">
+                            <div class="card-body">
+                                {% for field in form %}
+                                    <div class="form-group">
+                                        <label>{{ field.label }}</label>
+                                        {{ field }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <!-- Placeholder for dynamically loading class and subclass options -->
+                            <div class="form-group">
+                                <label for="id_level">Level</label>
+                                <select name="level" id="id_level" class="form-control" hx-get="{% url 'get-classes-for-level' %}" hx-trigger="change" hx-target="#id_class_id" hx-include="select[name='level']">
+                                    <option value="">-----</option>
+                                    {% for level in form.fields.level.choices %}
+                                        <option value="{{ level.0 }}">{{ level.1 }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="id_class_id">Class</label>
+                                <select name="class_id" id="id_class_id" class="form-control" hx-get="{% url 'get-subclasses-for-class' '9999' %}" hx-trigger="change" hx-target="#id_subclass_id" hx-include="select[name='class_id']">
+                                    <!-- Options populated by HTMX -->
+                                </select>
+                            </div>
+                            <div class="form-group" id="subclass_container" style="display:none;">
+                                <label for="id_subclass_id">Subclass</label>
+                                <select name="subclass_id" id="id_subclass_id" class="form-control">
+                                    <!-- Placeholder, content replaced by HTMX -->
+                                </select>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-primary">Add Student</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
+        </div>
+    </div><!-- /.container-fluid -->
+</section>
+{% endblock main_content %}
 
-        </div><!-- /.container-fluid -->
-      </section>
-
-  {% endblock main_content %}
-
-  {% block custom_js %}
-    {% comment %} Checking if email and username already exists or not usin Ajax {% endcomment %}
-
-    <script>
-        $(document).ready(function(){
-            // keyup event will be triggered when user leaves keyboard
-            $("#id_email").keyup(function(){
-                var email = $(this).val();
-
-                if(email!=""){
-                    $.ajax({
-                        url : '{% url 'check_email_exist' %}',
-                        type : 'POST',
-                        data : {email:email}
-                    })
-                    .done(function(response){
-                        //console.log(response);
-
-                        if(response == "True"){
-                            $(".email_error").remove();
-                            $("<span class='email_error' style='color: red; padding: 5px; font-weight: bold;'> Email Not Available. </span>").insertAfter("#id_email")
-                        }
-                        else{
-                            $(".email_error").remove();
-                            $("<span class='email_error' style='color: green; padding: 5px; font-weight: bold;'> Email Available. </span>").insertAfter("#id_email")
-                        }
-                    })
-
-                    .fail(function(){
-                        console.log("Failed");
-                    })
-                }
-                else{
-                    $(".email_error").remove();
-                }
-                
-            })
-
-            $("#id_username").keyup(function(){
-                var username = $(this).val();
-                
-                if(username!=""){
-                    $.ajax({
-                        url : '{% url 'check_username_exist' %}',
-                        type : 'POST',
-                        data : {username:username}
-                    })
-                    .done(function(response){
-                        //console.log(response);
-
-                        if(response == "True"){
-                            $(".username_error").remove();
-                            $("<span class='username_error' style='color: red; padding: 5px; font-weight: bold;'> Username Not Available. </span>").insertAfter("#id_username")
-                        }
-                        else{
-                            $(".username_error").remove();
-                            $("<span class='username_error' style='color: green; padding: 5px; font-weight: bold;'> Username Available. </span>").insertAfter("#id_username")
-                        }
-                    })
-
-                    .fail(function(){
-                        console.log("Failed");
-                    })
-                }
-                else{
-                    $(".username_error").remove();
-                }
-                
-            })
-        })
-    </script>
-
-  {% endblock custom_js %}
+{% block custom_js %}
+<script src="https://unpkg.com/htmx.org"></script>
+<script>
+    document.addEventListener('htmx:afterSwap', function(evt) {
+        if(evt.detail.target.id === 'id_class_id') {
+            let subclassContainer = document.getElementById('subclass_container');
+            if(document.getElementById('id_class_id').children.length > 1) { // Assumes the first option is a placeholder/dummy and checks if there are actual classes loaded
+                subclassContainer.style.display = '';
+            } else {
+                subclassContainer.style.display = 'none';
+            }
+        }
+    });
+</script>
+{% endblock custom_js %}

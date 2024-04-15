@@ -27,6 +27,7 @@ urlpatterns = [
     path('classes/<int:class_id>/subclasses/', HodViews.manage_subclass, name='manage_subclass'),
     path('subclasses/add/<int:class_id>/', HodViews.add_subclass, name='add_subclass'),
     path('subclasses/<int:subclass_id>/edit/', HodViews.edit_subclass, name='edit_subclass'),
+    path('get-subclasses/<int:class_id>/', HodViews.get_subclasses, name='get_subclasses'),
     path('subclasses/<int:subclass_id>/delete/', HodViews.delete_subclass, name='delete_subclass'),
     path('manage_session/', HodViews.manage_session, name="manage_session"),
     path('add_session/', HodViews.add_session, name="add_session"),
@@ -63,7 +64,9 @@ urlpatterns = [
     path('admin_get_attendance_student/', HodViews.admin_get_attendance_student, name="admin_get_attendance_student"),
     path('admin_profile/', HodViews.admin_profile, name="admin_profile"),
     path('admin_profile_update/', HodViews.admin_profile_update, name="admin_profile_update"),
-    
+    #URLS for for classes management
+    path('get-classes-for-level/', HodViews.get_classes_for_level, name='get-classes-for-level'),
+    path('get-subclasses-for-class/<int:class_id>/', HodViews.get_subclasses_for_class, name='get-subclasses-for-class'),
 
 
     # URLS for Staff

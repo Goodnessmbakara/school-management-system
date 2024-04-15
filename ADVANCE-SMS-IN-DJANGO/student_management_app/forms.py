@@ -56,10 +56,7 @@ class AddStudentForm(forms.Form):
     level = forms.ChoiceField(label="Level", choices=Classes.LEVEL_CHOICES, widget=forms.Select(attrs={"class": "form-control"}))
     # Modify class_id field to not initialize choices here, it will be dynamically loaded
 
-    def __init__(self, *args, **kwargs):
-        super(AddStudentForm, self).__init__(*args, **kwargs)
-        self.fields['class_id'] = forms.ChoiceField(label="Class", choices=[], widget=forms.Select(attrs={"class": "form-control"}))
-
+    class_id = forms.ChoiceField(label="Class", choices=[], widget=forms.Select(attrs={"class": "form-control"}))
 
 
 

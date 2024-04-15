@@ -1,0 +1,7 @@
+<!-- This is what your hod_template/class_options.html should look like -->
+<select name="class_id" id="id_class_id" class="form-control">
+    <option value="">Select a Class</option>
+    {% for cls in classes %}
+        <option value="{{ cls.id }}">{{ cls.class_name }}</option>
+    {% endfor %}
+</select>

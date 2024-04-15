@@ -1,94 +1,108 @@
 {% extends 'hod_template/base_template.html' %}
 
-
 {% block page_title %}
-    Add Subject
+Add Subject
 {% endblock page_title %}
 
 {% block main_content %}
-
 {% load static %}
 
 <section class="content">
-        <div class="container-fluid">
-
-            <div class="row">
-                <div class="col-md-12">
-                    <!-- general form elements -->
-                    <div class="card card-primary">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <!-- General form elements -->
+                <div class="card card-primary">
                     <div class="card-header">
                         <h3 class="card-title">Add Subject</h3>
                     </div>
-                    <!-- /.card-header -->
-                    <!-- form start -->
+                    <!-- Card header -->
                     <form role="form" method="POST" action="{% url 'add_subject_save' %}">
                         {% csrf_token %}
-
-                        
-                                {% comment %} Display Messages {% endcomment %}
-                                {% if messages %}
-                                <div class="form-group">
-                                <div class="col-12">
-                                    {% for message in messages %}
-                                    {% if message.tags == "error" %}
-                                        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-top: 10px;">
-                                        {{ message }}
-                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                        </div>
-                                    {% elif message.tags == "success" %}
-                                        <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin-top: 10px;">
-                                        {{ message }}
-                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                        </div>
-                                    {% endif %}
-                                    {% endfor %}
+                        <!-- Display Messages -->
+                        {% if messages %}
+                        <div class="form-group">
+                            <div class="col-12">
+                                {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="margin-top: 10px;">
+                                    {{ message }}
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
                                 </div>
-                                </div>
-                                {% endif %}
-                            
-
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        <!-- Form Start -->
                         <div class="card-body">
                             <div class="form-group">
-                                <label>Subject Name </label>
-                                <input type="text" class="form-control" name="subject" placeholder="Enter Subject">
+                                <label for="subjectName">Subject Name</label>
+                                <input type="text" class="form-control" id="subjectName" name="subject" placeholder="Enter Subject Name" required>
                             </div>
-
                             <div class="form-group">
-                                <label>Class </label>
-                                <select class="form-control" name="class">
+                                <label for="classSelect">Class</label>
+                                <select class="form-control" id="classSelect" name="class" required>
                                     {% for single_class in classes %}
-                                        <option value="{{ single_class.id }}">{{ single_class.class_name }}</option>
+                                    <option value="{{ single_class.id }}" data-level="{{ single_class.level }}">{{ single_class.class_name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
-
+                            <div class="form-group" id="subclass-select-wrapper" style="display: none;">
+                                <label for="subclassSelect">Subclass</label>
+                                <select class="form-control" id="subclassSelect" name="subclass">
+                                    <!-- Subclass options will be loaded here based on the selected class -->
+                                </select>
+                            </div>
                             <div class="form-group">
-                                <label>Staff </label>
-                                <select class="form-control" name="staff">
+                                <label for="staffSelect">Staff</label>
+                                <select class="form-control" id="staffSelect" name="staff" required>
                                     {% for staff in staffs %}
-                                        <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name }}</option>
+                                    <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
-
                         </div>
-                        <!-- /.card-body -->
-
+                        <!-- Card Body -->
                         <div class="card-footer">
-                        <button type="submit" class="btn btn-primary">Add Subject</button>
+                            <button type="submit" class="btn btn-primary">Add Subject</button>
                         </div>
                     </form>
-                    </div>
-                    <!-- /.card -->
-
                 </div>
+                <!-- Card -->
             </div>
+        </div>
+    </div>
+    <!-- Container Fluid -->
+</section>
+{% endblock main_content %}
 
-        </div><!-- /.container-fluid -->
-      </section>
+{% block custom_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const classSelect = document.querySelector('#classSelect');
+    const subclassSelectWrapper = document.querySelector('#subclass-select-wrapper');
+    const subclassSelect = document.querySelector('#subclassSelect');
 
-  {% endblock main_content %}
+    classSelect.addEventListener('change', function() {
+        const classId = this.value;
+        const classLevel = this.options[this.selectedIndex].getAttribute('data-level');
+
+        subclassSelect.innerHTML = ''; // Clear current options
+        subclassSelectWrapper.style.display = (classLevel === 'Nursery') ? 'none' : 'block'; // Display control based on class level
+
+        if (classLevel !== 'Nursery') {
+            fetch(`/get-subclasses/${classId}/`)
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(subclass => {
+                    let option = new Option(`${subclass.subclass_name} (${subclass.subclass_code})`, subclass.id);
+                    subclassSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.log('Error:', error));
+        }
+    });
+});
+</script>
+{% endblock custom_js %}

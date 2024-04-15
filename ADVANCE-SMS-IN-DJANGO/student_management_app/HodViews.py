@@ -7,6 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
 import json
 from .forms import ClassForm
+from django.template.loader import render_to_string
 from django.views.decorators.cache import cache_control
 from django.shortcuts import get_object_or_404
 
@@ -570,19 +571,23 @@ def add_subject_save(request):
 
         class_id = request.POST.get('class')
         single_class = get_object_or_404(Classes, pk=class_id)
-
+        subclass_id = request.POST.get('subclass', None)
 
         staff_id = request.POST.get('staff')
         staff = CustomUser.objects.get(id=staff_id)
+        if single_class.level == 'Nursery' and subclass_id:
+            messages.error(request, "Nursery classes cannot have subclasses.")
+            return redirect('add_subject')
+         # Create the subject for either class or subclass
+        if subclass_id:
+            subclass = SubClasses.objects.get(id=subclass_id)
+            subject = Subject(subject_name=subject_name, class_subclass_object=subclass, staff_id=staff)
+        else:
+            subject = Subject(subject_name=subject_name, class_subclass_object=single_class, staff_id=staff)
 
-        try:
-            subject = Subject(subject_name=subject_name, class_id=single_class, staff_id=staff)
-            subject.save()
-            messages.success(request, "Subject Added Successfully!")
-            return redirect('add_subject')
-        except:
-            messages.error(request, "Failed to Add Subject!")
-            return redirect('add_subject')
+        subject.save()
+        messages.success(request, "Subject added successfully.")
+        return redirect('add_subject')  # Redirect after successful save
 
 
 def manage_subject(request):
@@ -595,11 +600,11 @@ def manage_subject(request):
 
 def edit_subject(request, subject_id):
     subject = Subject.objects.get(id=subject_id)
-    Classes = Classes.objects.all()
+    classes = Classes.objects.all()
     staffs = CustomUser.objects.filter(user_type='2')
     context = {
         "subject": subject,
-        "Classes": Classes,
+        "Classes": classes,
         "staffs": staffs,
         "id": subject_id
     }
@@ -648,6 +653,25 @@ def delete_subject(request, subject_id):
         messages.error(request, "Failed to Delete Subject.")
         return redirect('manage_subject')
 
+def get_classes_for_level(request):
+    level = request.GET.get('level')
+    classes = Classes.objects.filter(level=level).order_by('class_name')
+    context = {'classes': classes}
+    html = render_to_string('hod_template/class_options.html', context)
+    return HttpResponse(html)
+
+def get_subclasses_for_class(request, class_id):
+    subclasses = SubClasses.objects.filter(parent_class_id=class_id).order_by('subclass_name')
+    context = {'subclasses': subclasses}
+    html = render_to_string('hod_template/subclass_options.html', context)
+    return HttpResponse(html)
+
+def get_subclasses(request, class_id):
+    subclasses = SubClasses.objects.filter(parent_class_id=class_id).values('id', 'subclass_name', 'subclass_code')
+    if subclasses:
+        return JsonResponse(list(subclasses), safe=False)
+    else:
+        return JsonResponse([], safe=False)
 
 @csrf_exempt
 def check_email_exist(request):

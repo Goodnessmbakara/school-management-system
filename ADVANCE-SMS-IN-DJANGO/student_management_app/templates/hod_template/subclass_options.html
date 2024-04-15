@@ -1,0 +1,5 @@
+<!-- subclass_options.html -->
+<option value="">Select a Subclass</option>
+{% for subclass in subclasses %}
+<option value="{{ subclass.id }}">{{ subclass.subclass_name }}</option>
+{% endfor %}
