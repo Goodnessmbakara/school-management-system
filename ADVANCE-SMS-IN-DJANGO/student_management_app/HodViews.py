@@ -591,9 +591,14 @@ def add_subject_save(request):
 
 
 def manage_subject(request):
-    subjects = Subject.objects.all()
+    search_query = request.GET.get('search', '')
+    if search_query:
+        subjects = Subject.objects.filter(subject_name__icontains=search_query)
+    else:
+        subjects = Subject.objects.all()
+
     context = {
-        "subjects": subjects
+        'subjects': subjects
     }
     return render(request, 'hod_template/manage_subject_template.html', context)
 

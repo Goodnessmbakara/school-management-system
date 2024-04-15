@@ -48,6 +48,9 @@ class Classes(models.Model):
     level = models.CharField(max_length=50, choices=LEVEL_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True, null = True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f" {self.class_name}"
 
 # models.py
 
@@ -59,7 +62,7 @@ class SubClasses(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.subclass_name
+        return f" {self.subclass_name} ( {self.subclass_code} ) "
 
 
 class Students(models.Model):
