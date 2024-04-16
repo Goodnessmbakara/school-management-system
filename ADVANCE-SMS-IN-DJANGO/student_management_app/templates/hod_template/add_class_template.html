@@ -5,47 +5,77 @@ Add Class
 {% endblock page_title %}
 
 {% block main_content %}
+{% load static %}
 
 <section class="content">
     <div class="container-fluid">
-
-        <div class="row">
-            <div class="col-md-6">
-                <!-- general form elements -->
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <!-- General form elements -->
                 <div class="card card-primary">
                     <div class="card-header">
                         <h3 class="card-title">Add New Class</h3>
                     </div>
-                    <!-- /.card-header -->
-                    <!-- form start -->
+                    <!-- Card header -->
                     <form role="form" method="POST" action="{% url 'add_class_save' %}">
                         {% csrf_token %}
                         <div class="card-body">
+                            <!-- Class Name Field -->
                             <div class="form-group">
                                 <label for="class_name">Class Name</label>
                                 <input type="text" class="form-control" id="class_name" name="class_name" placeholder="Enter class name" required>
                             </div>
+                            <!-- Level Field -->
                             <div class="form-group">
                                 <label for="level">Level</label>
-                                <select name="level" id="id_level" class="form-control">
+                                <select name="level" id="level" class="form-control custom-select" onchange="toggleTeacherField();">
                                     {% for value, name in form.fields.level.choices %}
                                         <option value="{{ value }}">{{ name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
+                            <!-- Class Teacher Field, initially hidden -->
+                            <div class="form-group" id="class_teacher_container" style="display: none;">
+                                <label for="class_teacher">Class Teacher</label>
+                                <select class="form-control custom-select" id="class_teacher" name="class_teacher">
+                                    <option value="">--- Select Teacher ---</option>
+                                    {% for teacher in form.fields.class_teacher.queryset %}
+                                        <option value="{{ teacher.id }}" {% if form.instance.class_teacher_id == teacher.id %}selected{% endif %}>
+                                            {{ teacher.get_full_name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </div>
-                        <!-- /.card-body -->
-
+                        <!-- Card body -->
                         <div class="card-footer">
                             <button type="submit" class="btn btn-primary">Submit</button>
                         </div>
                     </form>
                 </div>
-                <!-- /.card -->
+                <!-- Card -->
             </div>
         </div>
-
-    </div><!-- /.container-fluid -->
+    </div><!-- Container-fluid -->
 </section>
+
+<script>
+function toggleTeacherField() {
+    var levelSelect = document.getElementById('level');
+    var teacherContainer = document.getElementById('class_teacher_container');
+
+    // Display the teacher field only if 'Nursery' is selected
+    if (levelSelect.value === 'Nursery') {
+        teacherContainer.style.display = '';
+    } else {
+        teacherContainer.style.display = 'none';
+    }
+}
+
+// Initial check on page load in case the form is re-rendered with previous selections
+document.addEventListener('DOMContentLoaded', function() {
+    toggleTeacherField();
+});
+</script>
 
 {% endblock main_content %}

@@ -5,13 +5,10 @@
 {% endblock page_title %}
 
 {% block main_content %}
-
 {% load static %}
 
 <section class="content">
     <div class="container-fluid">
-
-        <!-- Link to add a new subclass -->
         <a class="btn btn-primary" href="{% url 'add_subclass' class_id=parent_class.id %}" role="button">Add Subclass</a>
         <br/>&nbsp;
 
@@ -41,7 +38,6 @@
 
         <div class="row">
             <div class="col-md-12">
-                <!-- Subclass list table -->
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Subclass Details</h3>
@@ -52,6 +48,7 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Subclass Name</th>
+                                    <th>Subclass Teacher</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -60,13 +57,16 @@
                                     <tr>
                                         <td>{{ subclass.id }}</td>
                                         <td>{{ subclass.subclass_name }} ({{ subclass.subclass_code }})</td>
-
                                         <td>
-                                            <!-- Link to edit subclass -->
+                                            {% if subclass.subclass_teacher %}
+                                                {{ subclass.subclass_teacher.get_full_name }}
+                                            {% else %}
+                                                Not Assigned
+                                            {% endif %}
+                                        </td>
+                                        <td>
                                             <a href="{% url 'edit_subclass' subclass_id=subclass.id %}" class="btn btn-success">Edit</a>
-                                            <!-- Link to delete subclass -->
-                                            <a href="{% url 'delete_subclass' subclass.id %}" hx-target="#subclass-list" hx-swap="outerHTML" class="btn btn-danger">Delete</a>
-
+                                            <a href="{% url 'delete_subclass' subclass.id %}" class="btn btn-danger">Delete</a>
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -76,7 +76,6 @@
                 </div>
             </div>
         </div>
-
     </div><!-- /.container-fluid -->
 </section>
 

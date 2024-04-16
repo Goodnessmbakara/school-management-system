@@ -9,7 +9,6 @@ Manage Subjects
 
 <section class="content">
     <div class="container-fluid">
-
         <a class="btn btn-primary" href="{% url 'add_subject' %}" role="button">+ Add Subject</a>
         <br/>&nbsp;
 
@@ -33,12 +32,10 @@ Manage Subjects
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Subject Details</h3>
-
                         <div class="card-tools">
                             <form method="GET" action="{% url 'manage_subject' %}">
                                 <div class="input-group input-group-sm" style="width: 150px;">
                                     <input type="text" name="search" value="{{ request.GET.search }}" class="form-control float-right" placeholder="Search subjects">
-
                                     <div class="input-group-append">
                                         <button type="submit" class="btn btn-default">
                                             <i class="fas fa-search"></i>
@@ -55,9 +52,9 @@ Manage Subjects
                                     <th>ID</th>
                                     <th>Subject Name</th>
                                     <th>Class/Subclass</th>
-                                    <th>Staff</th>
-                                    <th>Created At</th>
-                                    <th>Updated At</th>
+                                    <th>Subject Teacher</th>
+                                    <th>Created Time</th>
+                                    <th>Last Updated</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -67,7 +64,15 @@ Manage Subjects
                                 <tr>
                                     <td>{{ subject.id }}</td>
                                     <td>{{ subject.subject_name }}</td>
-                                    <td>{{ subject.class_subclass_object }}</td>
+                                    <td>
+                                        {% if subject.class_id %}
+                                            {{ subject.class_id.class_name }}
+                                        {% elif subject.subclass_id %}
+                                            {{ subject.subclass_id.subclass_name }} ({{ subject.subclass_id.subclass_code }})
+                                        {% else %}
+                                            Not Assigned
+                                        {% endif %}
+                                    </td>
                                     <td>{{ subject.staff_id.first_name }} {{ subject.staff_id.last_name }}</td>
                                     <td>{{ subject.created_at|date:"Y-m-d H:i" }}</td>
                                     <td>{{ subject.updated_at|date:"Y-m-d H:i" }}</td>
@@ -88,7 +93,6 @@ Manage Subjects
                 </div>
             </div>
         </div>
-
     </div>
 </section>
 

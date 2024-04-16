@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
 import json
-from .forms import ClassForm
+from .forms import ClassForm, SubClassForm
 from django.template.loader import render_to_string
 from django.views.decorators.cache import cache_control
 from django.shortcuts import get_object_or_404
@@ -38,7 +38,7 @@ def admin_home(request):
     subject_list = []
     student_count_list_in_subject = []
     for subject in subject_all:
-        single_class = Classes.objects.get(id=subject.class_id.id)
+        single_class = Classes.objects.get(id=subject.classs)
         student_count = Students.objects.filter(class_id=single_class.id).count()
         subject_list.append(subject.subject_name)
         student_count_list_in_subject.append(student_count)
@@ -185,28 +185,30 @@ def delete_staff(request, staff_id):
 
 
 def add_class(request):
-    form = ClassForm()
+    # Fetching all staff who could potentially be class teachers
+    staffs = CustomUser.objects.filter(user_type=2)  # Assuming '2' is the user_type for teachers
+    form = ClassForm(teacher_queryset=staffs)
     return render(request, "hod_template/add_class_template.html", {'form': form})
 
 
 def add_class_save(request):
-    if request.method == "POST":
-        form = ClassForm(request.POST)
-        if form.is_valid():
-            try:
-                # Saving form will automatically save the model with all fields.
-                form.save()
-                messages.success(request, "Class Added Successfully!")
-                return redirect('manage_class')
-            except Exception as e:
-                messages.error(request, f"Failed to Add Class! Error: {e}")
-                return redirect('add_class')
-        else:
-            # If the form is not valid, pass the form back to the template to display errors.
-            return redirect('manage_class')
-    else:
-        messages.error(request, "Invalid Method!")
+    staffs = CustomUser.objects.filter(user_type=2)
+    if request.method != "POST":
+        messages.error(request, "Invalid request method. Please submit the form.")
         return redirect('add_class')
+
+    form = ClassForm(request.POST, teacher_queryset=staffs)
+    if form.is_valid():
+        try:
+            form.save()
+            messages.success(request, "Class added successfully!")
+            return redirect('manage_class')
+        except Exception as e:
+            messages.error(request, f"Failed to add class! Error: {e}")
+            return render(request, 'hod_template/add_class_template.html', {'form': form})
+    else:
+        messages.error(request, "There were errors in your form. Please correct them.")
+        return render(request, 'hod_template/add_class_template.html', {'form': form})
 
 
 
@@ -258,23 +260,30 @@ def delete_class(request, class_id):
         return redirect('manage_class')
 
 def add_subclass(request, class_id):
-    subclasses = SubClasses.objects.filter(parent_class_id=class_id)
-    if request.method == "POST":
-        parent_class_id = class_id
-        subclass_code = request.POST.get('subclass_code')
-        parent_class = get_object_or_404(Classes, id=parent_class_id)
-        subclass_name = parent_class.class_name  # Deriving subclass name from parent class
+    parent_class = get_object_or_404(Classes, id=class_id)
+    teachers = CustomUser.objects.filter(user_type=2)  # Assuming '2' is the user_type for staff
 
-        # Creating a new Subclass instance
-        new_subclass = SubClasses.objects.create(
-            parent_class_id=parent_class_id,
-            subclass_name=subclass_name,
-            subclass_code=subclass_code
+    if request.method == "POST":
+        subclass_code = request.POST.get('subclass_code')
+        teacher_id = request.POST.get('subclass_teacher')
+        teacher = CustomUser.objects.get(id=teacher_id) if teacher_id else None
+
+        new_subclass = SubClasses(
+            parent_class=parent_class,
+            subclass_name=parent_class.class_name,  # Automatically setting the subclass name
+            subclass_code=subclass_code,
+            subclass_teacher=teacher
         )
-        # Render the updated list of subclasses to return as response
+        new_subclass.save()
         return redirect('manage_subclass', class_id=parent_class.id)
-        # content = render_to_string('partials/_subclass_list.html', {'subclasses': subclasses})
-    return render(request,'hod_template/add_subclass_template.html' )
+
+    return render(request, 'hod_template/add_subclass_template.html', {
+        'parent_class_id': class_id,
+        'teachers': teachers
+    })
+
+
+
 
 def edit_subclass(request, subclass_id):
     subclass = get_object_or_404(SubClasses, id=subclass_id)
@@ -305,7 +314,7 @@ def delete_subclass(request, subclass_id):
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def manage_subclass(request, class_id):
     parent_class = get_object_or_404(Classes, id=class_id)
-    subclasses = parent_class.subclasses.all()
+    subclasses = parent_class.subclasses.all().select_related('subclass_teacher')
     return render(request, 'hod_template/manage_subclass_template.html', {'parent_class': parent_class, 'subclasses': subclasses})
 
 
@@ -562,32 +571,34 @@ def add_subject(request):
 
 
 
+
 def add_subject_save(request):
     if request.method != "POST":
         messages.error(request, "Method Not Allowed!")
         return redirect('add_subject')
+
+    subject_name = request.POST.get('subject')
+    class_id = request.POST.get('class')
+    single_class = get_object_or_404(Classes, pk=class_id)
+    subclass_id = request.POST.get('subclass', None)
+    staff_id = request.POST.get('staff')
+    staff = get_object_or_404(CustomUser, pk=staff_id)
+
+    # Check for Nursery level and subclass assignment attempt
+    if single_class.level == 'Nursery' and subclass_id:
+        messages.error(request, "Nursery classes cannot have subclasses.")
+        return redirect('add_subject')
+
+    # Create the subject for either class or subclass
+    if subclass_id:
+        subclass = get_object_or_404(SubClasses, pk=subclass_id)
+        subject = Subject(subject_name=subject_name, subclass_id=subclass, staff_id=staff)
     else:
-        subject_name = request.POST.get('subject')
+        subject = Subject(subject_name=subject_name, class_id=single_class, staff_id=staff)
 
-        class_id = request.POST.get('class')
-        single_class = get_object_or_404(Classes, pk=class_id)
-        subclass_id = request.POST.get('subclass', None)
-
-        staff_id = request.POST.get('staff')
-        staff = CustomUser.objects.get(id=staff_id)
-        if single_class.level == 'Nursery' and subclass_id:
-            messages.error(request, "Nursery classes cannot have subclasses.")
-            return redirect('add_subject')
-         # Create the subject for either class or subclass
-        if subclass_id:
-            subclass = SubClasses.objects.get(id=subclass_id)
-            subject = Subject(subject_name=subject_name, class_subclass_object=subclass, staff_id=staff)
-        else:
-            subject = Subject(subject_name=subject_name, class_subclass_object=single_class, staff_id=staff)
-
-        subject.save()
-        messages.success(request, "Subject added successfully.")
-        return redirect('add_subject')  # Redirect after successful save
+    subject.save()
+    messages.success(request, "Subject added successfully.")
+    return redirect('add_subject')  # Redirect after successful save
 
 
 def manage_subject(request):

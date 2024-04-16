@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.timezone import now
+from django.core.exceptions import ValidationError
+from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth.models import AbstractUser
@@ -9,12 +11,6 @@ from django.contrib.auth.models import AbstractUser
 import logging
 
 logger = logging.getLogger(__name__)
-
-class SessionYearModel(models.Model):
-    id = models.AutoField(primary_key=True)
-    session_start_year = models.DateField()
-    session_end_year = models.DateField()
-    objects = models.Manager()
 
 
 class CustomUser(AbstractUser):
@@ -37,6 +33,29 @@ class Staffs(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
 
+class Students(models.Model):
+    id = models.AutoField(primary_key=True)
+    admin = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    gender = models.CharField(max_length=50)
+    profile_pic = models.FileField()
+    address = models.TextField()
+    class_id = models.ForeignKey('Classes', on_delete=models.DO_NOTHING)
+    session_year_id = models.ForeignKey("SessionYearModel", on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    objects = models.Manager()
+
+class SessionYearModel(models.Model):
+    id = models.AutoField(primary_key=True)
+    session_start_year = models.DateField()
+    session_end_year = models.DateField()
+    objects = models.Manager()
+    description = models.CharField(max_length=255, null=True, blank=True)  # Optional description
+
+    def __str__(self):
+        return f"{self.session_start_year}-{self.session_end_year}"
+
+
 class Classes(models.Model):
     LEVEL_CHOICES = (
         ('Nursery', 'Nursery'),
@@ -46,9 +65,10 @@ class Classes(models.Model):
     id = models.AutoField(primary_key=True)
     class_name = models.CharField(max_length=255)
     level = models.CharField(max_length=50, choices=LEVEL_CHOICES)
+    class_teacher = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='class_teacher')
     created_at = models.DateTimeField(auto_now_add=True, null = True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     def __str__(self):
         return f" {self.class_name}"
 
@@ -57,35 +77,26 @@ class Classes(models.Model):
 class SubClasses(models.Model):
     parent_class = models.ForeignKey(Classes, on_delete=models.CASCADE, related_name='subclasses')
     subclass_name = models.CharField(max_length=255)
-    subclass_code = models.CharField(max_length=10, unique=True)
+    subclass_code = models.CharField(max_length=10)
+    subclass_teacher = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='subclass_teacher')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('subclass_name', 'subclass_code')
 
     def __str__(self):
-        return f" {self.subclass_name} ( {self.subclass_code} ) "
+        return f"{self.subclass_name} ({self.subclass_code})"
 
-
-class Students(models.Model):
-    id = models.AutoField(primary_key=True)
-    admin = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    gender = models.CharField(max_length=50)
-    profile_pic = models.FileField()
-    address = models.TextField()
-    class_id = models.ForeignKey(Classes, on_delete=models.DO_NOTHING)
-    session_year_id = models.ForeignKey(SessionYearModel, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
 
 
 class Subject(models.Model):
     subject_name = models.CharField(max_length=255)
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, )
-    object_id = models.PositiveIntegerField()
-    class_subclass_object = GenericForeignKey('content_type', 'object_id')
+    class_id = models.ForeignKey(Classes, related_name='subjects', on_delete=models.CASCADE, null=True, blank=True)
+    subclass_id = models.ForeignKey(SubClasses, related_name='subjects', on_delete=models.CASCADE, null=True, blank=True)
     staff_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank = True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank = True)
 
 
 
@@ -99,12 +110,21 @@ class Grade(models.Model):
     student = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='grades')
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     term = models.IntegerField(choices=TERM_CHOICES)
-    test1 = models.DecimalField(max_digits=5, decimal_places=2)
-    test2 = models.DecimalField(max_digits=5, decimal_places=2)
-    test3 = models.DecimalField(max_digits=5, decimal_places=2)
-    exam = models.DecimalField(max_digits=5, decimal_places=2)
-    final_grade = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    session_year = models.ForeignKey(SessionYearModel, on_delete=models.CASCADE)
+    test1 = models.DecimalField(max_digits=5, decimal_places=2, null= True, blank = True)
+    test2 = models.DecimalField(max_digits=5, decimal_places=2, null= True, blank = True)
+    test3 = models.DecimalField(max_digits=5, decimal_places=2, null= True, blank = True)
+    exam = models.DecimalField(max_digits=5, decimal_places=2, null= True, blank = True)
+    total_grade = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, blank = True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True)
+    updated_by = models.ForeignKey(CustomUser, on_delete=models.DO_NOTHING)
     approved = models.BooleanField(default=False)  # Only true when the admin approves the grades
+
+    def clean(self):
+        current_date = timezone.now().date()
+        if self.session_year and self.subject and current_date > self.subject.deadline.deadline:
+            raise ValidationError("Grades cannot be entered past the deadline.")
 
     def save(self, *args, **kwargs):
         self.final_grade = self.calculate_final_grade()
@@ -119,6 +139,10 @@ class GradeDeadline(models.Model):
     term = models.IntegerField(choices=Grade.TERM_CHOICES)
     deadline = models.DateTimeField()
     is_active = models.BooleanField(default=True)
+    
+    def clean(self):
+        if self.deadline < timezone.now().date():
+            raise ValidationError("Deadline must be set in the future.")
 
     @classmethod
     def is_open_for_grading(cls, term):
@@ -128,20 +152,15 @@ class GradeDeadline(models.Model):
         except cls.DoesNotExist:
             return False
 
-
-class Students(models.Model):
+class StudentResult(models.Model):
     id = models.AutoField(primary_key=True)
-    admin = models.OneToOneField(CustomUser, on_delete = models.CASCADE)
-    gender = models.CharField(max_length=50)
-    profile_pic = models.FileField()
-    address = models.TextField()
-    class_id = models.ForeignKey(Classes, on_delete=models.DO_NOTHING, default=1)
-    session_year_id = models.ForeignKey(SessionYearModel, on_delete=models.CASCADE)
+    student_id = models.ForeignKey(Students, on_delete=models.CASCADE)
+    subject_id = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    subject_exam_marks = models.FloatField(default=0)
+    subject_assignment_marks = models.FloatField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
-
-
 
 class Attendance(models.Model):
     # Subject Attendance
@@ -225,16 +244,6 @@ class NotificationStaffs(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
 
-
-class StudentResult(models.Model):
-    id = models.AutoField(primary_key=True)
-    student_id = models.ForeignKey(Students, on_delete=models.CASCADE)
-    subject_id = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    subject_exam_marks = models.FloatField(default=0)
-    subject_assignment_marks = models.FloatField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    objects = models.Manager()
 
 # Django Signals
 @receiver(post_save, sender=CustomUser)

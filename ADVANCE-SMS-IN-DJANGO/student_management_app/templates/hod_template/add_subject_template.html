@@ -1,79 +1,68 @@
 {% extends 'hod_template/base_template.html' %}
 
-{% block page_title %}
-Add Subject
-{% endblock page_title %}
+{% block page_title %}Add Subject{% endblock page_title %}
 
 {% block main_content %}
 {% load static %}
 
 <section class="content">
     <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-12">
-                <!-- General form elements -->
-                <div class="card card-primary">
-                    <div class="card-header">
-                        <h3 class="card-title">Add Subject</h3>
-                    </div>
-                    <!-- Card header -->
-                    <form role="form" method="POST" action="{% url 'add_subject_save' %}">
-                        {% csrf_token %}
-                        <!-- Display Messages -->
-                        {% if messages %}
-                        <div class="form-group">
-                            <div class="col-12">
-                                {% for message in messages %}
-                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="margin-top: 10px;">
-                                    {{ message }}
-                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
-                                </div>
-                                {% endfor %}
-                            </div>
+        <a class="btn btn-primary" href="{% url 'add_subject' %}" role="button">+ Add Subject</a>
+        <br/><br/>
+        {% if messages %}
+            <div class="form-group">
+                <div class="col-12">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="margin-top: 10px;">
+                            {{ message }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
                         </div>
-                        {% endif %}
-                        <!-- Form Start -->
-                        <div class="card-body">
-                            <div class="form-group">
-                                <label for="subjectName">Subject Name</label>
-                                <input type="text" class="form-control" id="subjectName" name="subject" placeholder="Enter Subject Name" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="classSelect">Class</label>
-                                <select class="form-control" id="classSelect" name="class" required>
-                                    {% for single_class in classes %}
-                                    <option value="{{ single_class.id }}" data-level="{{ single_class.level }}">{{ single_class.class_name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="form-group" id="subclass-select-wrapper" style="display: none;">
-                                <label for="subclassSelect">Subclass</label>
-                                <select class="form-control" id="subclassSelect" name="subclass">
-                                    <!-- Subclass options will be loaded here based on the selected class -->
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="staffSelect">Staff</label>
-                                <select class="form-control" id="staffSelect" name="staff" required>
-                                    {% for staff in staffs %}
-                                    <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        <!-- Card Body -->
-                        <div class="card-footer">
-                            <button type="submit" class="btn btn-primary">Add Subject</button>
-                        </div>
-                    </form>
+                    {% endfor %}
                 </div>
-                <!-- Card -->
             </div>
+        {% endif %}
+        <div class="card card-primary">
+            <div class="card-header">
+                <h3 class="card-title">Add Subject</h3>
+            </div>
+            <form method="POST" action="{% url 'add_subject_save' %}">
+                {% csrf_token %}
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="subjectName">Subject Name</label>
+                        <input type="text" class="form-control" id="subjectName" name="subject" placeholder="Enter Subject Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="classSelect">Class</label>
+                        <select class="form-control" id="classSelect" name="class" required>
+                            {% for single_class in classes %}
+                                <option value="{{ single_class.id }}" data-level="{{ single_class.level }}">{{ single_class.class_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group" id="subclass-select-wrapper" style="display: none;">
+                        <label for="subclassSelect">Subclass</label>
+                        <select class="form-control" id="subclassSelect" name="subclass">
+                            <!-- Subclass options will be loaded here based on the selected class -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="staffSelect">Staff</label>
+                        <select class="form-control" id="staffSelect" name="staff" required>
+                            {% for staff in staffs %}
+                                <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary">Add Subject</button>
+                </div>
+            </form>
         </div>
     </div>
-    <!-- Container Fluid -->
 </section>
 {% endblock main_content %}
 
@@ -87,7 +76,6 @@ document.addEventListener("DOMContentLoaded", function() {
     classSelect.addEventListener('change', function() {
         const classId = this.value;
         const classLevel = this.options[this.selectedIndex].getAttribute('data-level');
-
         subclassSelect.innerHTML = ''; // Clear current options
         subclassSelectWrapper.style.display = (classLevel === 'Nursery') ? 'none' : 'block'; // Display control based on class level
 
@@ -99,8 +87,14 @@ document.addEventListener("DOMContentLoaded", function() {
                     let option = new Option(`${subclass.subclass_name} (${subclass.subclass_code})`, subclass.id);
                     subclassSelect.appendChild(option);
                 });
+                if (!data.length) {
+                    subclassSelectWrapper.style.display = 'none';
+                }
             })
-            .catch(error => console.log('Error:', error));
+            .catch(error => {
+                console.error('Error:', error);
+                subclassSelectWrapper.style.display = 'none';
+            });
         }
     });
 });

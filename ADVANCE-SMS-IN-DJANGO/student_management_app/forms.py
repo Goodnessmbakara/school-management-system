@@ -1,12 +1,36 @@
 from django import forms 
 from django.forms import Form
-from student_management_app.models import Classes, SessionYearModel, Classes
+from student_management_app.models import Classes, SessionYearModel, SubClasses
 
-
+from django.contrib.auth import get_user_model
+CustomUser = get_user_model()
 class ClassForm(forms.ModelForm):
     class Meta:
         model = Classes
-        fields = ['class_name', 'level']
+        fields = ['class_name', 'level', 'class_teacher']
+        widgets = {
+            'class_teacher': forms.Select(attrs={'class': 'form-control'})
+        }
+
+    def __init__(self, *args, teacher_queryset=None, **kwargs):
+        super(ClassForm, self).__init__(*args, **kwargs)
+        if teacher_queryset is not None:
+            self.fields['class_teacher'].queryset = teacher_queryset
+
+class SubClassForm(forms.ModelForm):
+    class Meta:
+        model = SubClasses
+        fields = ['subclass_name', 'subclass_code', 'subclass_teacher']
+
+    def __init__(self, *args, **kwargs):
+        super(SubClassForm, self).__init__(*args, **kwargs)
+        # Initially set the queryset for subclass_teacher to none
+        self.fields['subclass_teacher'].queryset = CustomUser.objects.none()
+
+    # Update the queryset for subclass_teacher based on selected parent class
+    def set_teachers(self, queryset):
+        self.fields['subclass_teacher'].queryset = queryset
+
 
 class DateInput(forms.DateInput):
     input_type = "date"
