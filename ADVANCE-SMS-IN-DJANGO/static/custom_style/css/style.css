@@ -1638,4 +1638,16 @@ h1, h2, h3, h4, h5, h6, figure {
   opacity: 0;
 }
 
-/*# sourceMappingURL=style.css.map */
+/* Adjust the size of the school logo */
+.school-logo {
+  height: 50px; /* Adjust the height as needed */
+  width: 40px; /* Maintain aspect ratio */
+  margin: auto; /* Center the logo horizontally */
+}
+
+/* Optional: Add padding to the logo container to create space around the logo */
+.logo-container {
+  padding: 10px;
+}
+
+
