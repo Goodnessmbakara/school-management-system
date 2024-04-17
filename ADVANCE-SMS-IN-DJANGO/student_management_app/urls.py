@@ -69,7 +69,12 @@ urlpatterns = [
     path('get-classes-for-level/', HodViews.get_classes_for_level, name='get-classes-for-level'),
     path('get-subclasses-for-class/<int:class_id>/', HodViews.get_subclasses_for_class, name='get-subclasses-for-class'),
 
-
+    #URLS FOR  managing grades by admin
+    path('grades/add/', HodViews.add_grade, name='add_grade'),
+    path('grades/edit/<int:grade_id>/', HodViews.edit_grade, name='edit_grade'),
+    path('grades/delete/<int:grade_id>/', HodViews.delete_grade, name='delete_grade'),
+    path('grades/manage/', HodViews.manage_grades, name='manage_grades'),
+    path('grades/search/', HodViews.search_grades, name='search_grades'),
     # URLS for Staff
     path('staff_home/', StaffViews.staff_home, name="staff_home"),
     path('staff_take_attendance/', StaffViews.staff_take_attendance, name="staff_take_attendance"),

@@ -124,9 +124,9 @@ class Grade(models.Model):
     approved = models.BooleanField(default=False)  # Only true when the admin approves the grades
 
     def clean(self):
-        current_date = timezone.now().date()
-        if self.session_year and self.subject and current_date > self.subject.deadline.deadline:
-            raise ValidationError("Grades cannot be entered past the deadline.")
+        if not GradeDeadline.is_open_for_grading(self.session_year, self.term, self.subject.class_id, self.subject.subclass_id):
+            raise ValidationError("Grades cannot be entered as the deadline has passed.")
+
 
     def save(self, *args, **kwargs):
         self.final_grade = self.calculate_final_grade()
@@ -141,7 +141,10 @@ class GradeDeadline(models.Model):
     term = models.IntegerField(choices=Grade.TERM_CHOICES)
     deadline = models.DateTimeField()
     is_active = models.BooleanField(default=True)
-    
+    session_year = models.ForeignKey(SessionYearModel, on_delete=models.CASCADE, null=True, blank = True)
+    class_id = models.ForeignKey(Classes, related_name='grade_deadline', on_delete=models.CASCADE, null=True, blank=True)
+    subclass_id = models.ForeignKey(SubClasses, related_name='grade_deadline', on_delete=models.CASCADE, null=True, blank=True)
+
     def clean(self):
         if self.deadline < timezone.now().date():
             raise ValidationError("Deadline must be set in the future.")

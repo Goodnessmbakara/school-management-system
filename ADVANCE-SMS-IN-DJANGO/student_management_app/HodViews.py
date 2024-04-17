@@ -950,3 +950,48 @@ def search_sessions(request):
         session_years = SessionYearModel.objects.all()
 
     return render(request, 'manage_session_years.html', {'session_years': session_years})
+
+def add_grade(request):
+    if request.method == 'POST':
+        form = GradeForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Grade added successfully!")
+            return redirect('manage_grades')
+        else:
+            messages.error(request, "Error adding grade.")
+    else:
+        form = GradeForm()
+    return render(request, 'grades/add_grade.html', {'form': form})
+
+def edit_grade(request, grade_id):
+    grade = get_object_or_404(Grade, id=grade_id)
+    if request.method == 'POST':
+        form = GradeForm(request.POST, instance=grade)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Grade updated successfully!")
+            return redirect('manage_grades')
+        else:
+            messages.error(request, "Error updating grade.")
+    else:
+        form = GradeForm(instance=grade)
+    return render(request, 'grades/edit_grade.html', {'form': form})
+
+def delete_grade(request, grade_id):
+    grade = get_object_or_404(Grade, id=grade_id)
+    grade.delete()
+    messages.success(request, "Grade deleted successfully!")
+    return redirect('manage_grades')
+
+def manage_grades(request):
+    grades = Grade.objects.all()
+    return render(request, 'grades/manage_grades.html', {'grades': grades})
+
+def search_grades(request):
+    query = request.GET.get('search')
+    if query:
+        grades = Grade.objects.filter(subject__subject_name__icontains=query)
+    else:
+        grades = Grade.objects.all()
+    return render(request, 'grades/manage_grades.html', {'grades': grades})
