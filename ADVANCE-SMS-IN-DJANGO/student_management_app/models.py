@@ -47,15 +47,14 @@ class Students(models.Model):
     objects = models.Manager()
 
 class SessionYearModel(models.Model):
-    id = models.AutoField(primary_key=True)
     session_start_year = models.DateField()
     session_end_year = models.DateField()
-    objects = models.Manager()
-    description = models.CharField(max_length=255, null=True, blank=True)  # Optional description
+    is_current = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.session_start_year}-{self.session_end_year}"
-
+        start_year = self.session_start_year.strftime('%Y')
+        end_year = self.session_end_year.strftime('%Y')
+        return f"{start_year}/{end_year}"
 
 class Classes(models.Model):
     LEVEL_CHOICES = (

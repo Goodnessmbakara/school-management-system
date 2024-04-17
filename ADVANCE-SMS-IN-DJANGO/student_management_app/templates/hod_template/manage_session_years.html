@@ -1,0 +1,39 @@
+{% extends 'hod_template/base_template.html' %}
+
+{% block main_content %}
+<div class="container">
+    <h2>Manage Session Years</h2>
+    <div>
+        <h3>Add or Update a Session Year</h3>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Save Session Year</button>
+        </form>
+    </div>
+    <hr>
+    <div>
+        <h3>Existing Session Years</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Session Year</th>
+                    <th>Is Current</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for year in session_years %}
+                <tr>
+                    <td>{{ year }}</td>
+                    <td>{{ year.is_current|yesno:"Yes,No" }}</td>
+                    <td>
+                        <a href="{% url 'set_current_session' year.id %}" class="btn btn-info">Set as Current</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

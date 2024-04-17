@@ -684,10 +684,7 @@ def get_subclasses_for_class(request, class_id):
 
 def get_subclasses(request, class_id):
     subclasses = SubClasses.objects.filter(parent_class_id=class_id).values('id', 'subclass_name', 'subclass_code')
-    if subclasses:
-        return JsonResponse(list(subclasses), safe=False)
-    else:
-        return JsonResponse([], safe=False)
+    return JsonResponse(list(subclasses), safe=False)
 
 @csrf_exempt
 def check_email_exist(request):
@@ -890,4 +887,27 @@ def staff_profile(request):
 def student_profile(requtest):
     pass
 
+
+def manage_session_years(request):
+    if request.method == 'POST':
+        form = SessionYearForm(request.POST)
+        if form.is_valid():
+            session_year = form.save(commit=False)
+            # If marked as current, reset others
+            if session_year.is_current:
+                SessionYearModel.objects.update(is_current=False)
+            session_year.save()
+            return redirect('manage_session_years')
+    else:
+        form = SessionYearForm()
+
+    session_years = SessionYearModel.objects.all().order_by('-session_start_year')
+    return render(request, 'hod_template/manage_session_years.html', {'form': form, 'session_years': session_years})
+
+def set_current_session(request, year_id):
+    SessionYearModel.objects.update(is_current=False)  # Reset the current flag on all years
+    session_year = get_object_or_404(SessionYearModel, pk=year_id)
+    session_year.is_current = True
+    session_year.save()
+    return redirect('manage_session_years')
 

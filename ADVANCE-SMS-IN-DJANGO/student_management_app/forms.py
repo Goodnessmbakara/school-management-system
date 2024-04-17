@@ -4,6 +4,13 @@ from student_management_app.models import Classes, SessionYearModel, SubClasses
 
 from django.contrib.auth import get_user_model
 CustomUser = get_user_model()
+
+
+class SessionYearForm(forms.ModelForm):
+    class Meta:
+        model = SessionYearModel
+        fields = ['session_start_year', 'session_end_year', 'is_current']
+
 class ClassForm(forms.ModelForm):
     class Meta:
         model = Classes
