@@ -10,14 +10,10 @@ from .forms import ClassForm, SubClassForm, SessionYearForm
 from django.template.loader import render_to_string
 from django.views.decorators.cache import cache_control
 from django.shortcuts import get_object_or_404
-
+from django.core.exceptions import ValidationError
 from student_management_app.models import CustomUser, Staffs, Classes,SubClasses, Subject, Students, SessionYearModel, FeedBackStudent, FeedBackStaffs, LeaveReportStudent, LeaveReportStaff, Attendance, AttendanceReport
 from .forms import AddStudentForm, EditStudentForm
 
-
-from django.shortcuts import render, get_object_or_404
-from .models import Classes, Subject, Students, Staffs, Attendance, LeaveReportStaff, AttendanceReport, LeaveReportStudent
-from django.core.exceptions import ValidationError
 
 def admin_home(request):
     all_student_count = Students.objects.all().count()
@@ -371,7 +367,7 @@ def add_session_save(request):
                 SessionYearModel.objects.update(is_current=False)
             session_year.save()
             messages.success(request, "Session Year added successfully!")
-            return redirect("add_session")
+            return redirect("manage_session")
         else:
             # This will display form specific errors
             messages.error(request, form.errors.as_text())
@@ -405,7 +401,7 @@ def edit_session_save(request):
             session_year.save()
 
             messages.success(request, "Session Year Updated Successfully.")
-            return redirect('/edit_session/'+session_id)
+            return redirect('manage_session')
         except:
             messages.error(request, "Failed to Update Session Year.")
             return redirect('/edit_session/'+session_id)
