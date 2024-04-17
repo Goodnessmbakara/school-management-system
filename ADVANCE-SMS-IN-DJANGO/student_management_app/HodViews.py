@@ -38,7 +38,7 @@ def admin_home(request):
     subject_list = []
     student_count_list_in_subject = []
     for subject in subject_all:
-        single_class = Classes.objects.get(id=subject.classs)
+        single_class = Classes.objects.get(id=subject.class_id)
         student_count = Students.objects.filter(class_id=single_class.id).count()
         subject_list.append(subject.subject_name)
         student_count_list_in_subject.append(student_count)
@@ -889,6 +889,5 @@ def staff_profile(request):
 
 def student_profile(requtest):
     pass
-
 
 

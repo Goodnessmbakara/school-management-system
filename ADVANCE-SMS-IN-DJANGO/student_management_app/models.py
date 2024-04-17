@@ -31,6 +31,7 @@ class Staffs(models.Model):
     address = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    session_year_id = models.ForeignKey("SessionYearModel", on_delete=models.CASCADE, blank=True, null=True)
     objects = models.Manager()
 
 class Students(models.Model):
@@ -68,6 +69,7 @@ class Classes(models.Model):
     class_teacher = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='class_teacher')
     created_at = models.DateTimeField(auto_now_add=True, null = True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
+    session_year_id = models.ForeignKey("SessionYearModel", on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         return f" {self.class_name}"
@@ -80,6 +82,7 @@ class SubClasses(models.Model):
     subclass_code = models.CharField(max_length=10)
     subclass_teacher = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='subclass_teacher')
     created_at = models.DateTimeField(auto_now_add=True)
+    session_year_id = models.ForeignKey("SessionYearModel", on_delete=models.CASCADE, blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -97,7 +100,7 @@ class Subject(models.Model):
     staff_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank = True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank = True)
-
+    session_year_id = models.ForeignKey("SessionYearModel", on_delete=models.CASCADE, blank=True, null=True)
 
 
 class Grade(models.Model):
