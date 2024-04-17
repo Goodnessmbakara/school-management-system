@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
 import json
-from .forms import ClassForm, SubClassForm
+from .forms import ClassForm, SubClassForm, SessionYearForm
 from django.template.loader import render_to_string
 from django.views.decorators.cache import cache_control
 from django.shortcuts import get_object_or_404
@@ -15,17 +15,22 @@ from student_management_app.models import CustomUser, Staffs, Classes,SubClasses
 from .forms import AddStudentForm, EditStudentForm
 
 
+from django.shortcuts import render, get_object_or_404
+from .models import Classes, Subject, Students, Staffs, Attendance, LeaveReportStaff, AttendanceReport, LeaveReportStudent
+from django.core.exceptions import ValidationError
+
 def admin_home(request):
     all_student_count = Students.objects.all().count()
     subject_count = Subject.objects.all().count()
     class_count = Classes.objects.all().count()
     staff_count = Staffs.objects.all().count()
 
-    # Total Subjects and students in Each Class
+    # Aggregate data for each class
     classes_all = Classes.objects.all()
     class_name_list = []
     subject_count_list = []
     student_count_list_in_class = []
+    student_count_list_in_subject = []
 
     for single_class in classes_all:
         subjects = Subject.objects.filter(class_id=single_class.id).count()
@@ -34,33 +39,44 @@ def admin_home(request):
         subject_count_list.append(subjects)
         student_count_list_in_class.append(students)
 
-    subject_all = Subject.objects.all()
+    # Aggregate data for each subject
     subject_list = []
-    student_count_list_in_subject = []
-    for subject in subject_all:
-        single_class = Classes.objects.get(id=subject.class_id)
-        student_count = Students.objects.filter(class_id=single_class.id).count()
-        subject_list.append(subject.subject_name)
-        student_count_list_in_subject.append(student_count)
-
-    # For Saffs
-    staff_attendance_present_list=[]
-    staff_attendance_leave_list=[]
-    staff_name_list=[]
+    subjects = Subject.objects.all()
+    for subject in subjects:
+        if subject.class_id:
+            related_class = get_object_or_404(Classes, id=subject.class_id.id)
+            student_count = Students.objects.filter(class_id=related_class.id).count()
+            subject_list.append(subject.subject_name)
+            student_count_list_in_subject.append(student_count)
+        elif subject.subclass_id:
+            related_subclass = get_object_or_404(SubClasses, id=subject.subclass_id.id)
+            related_class = get_object_or_404(Classes, id=related_subclass.parent_class.id)
+            student_count = Students.objects.filter(class_id=related_class.id).count()
+            subject_list.append(subject.subject_name + " (Subclass)")
+            student_count_list_in_subject.append(student_count)
+        else:
+            subject_list.append(subject.subject_name + " (Unassigned)")
+            student_count_list_in_subject.append(0)
+            
+            
+    # Include data collection for staff and students
+    staff_attendance_present_list = []
+    staff_attendance_leave_list = []
+    staff_name_list = []
 
     staffs = Staffs.objects.all()
     for staff in staffs:
-        subject_ids = Subject.objects.filter(staff_id=staff.admin.id)
+        subject_ids = Subject.objects.filter(staff_id=staff.admin.id).values_list('id', flat=True)
         attendance = Attendance.objects.filter(subject_id__in=subject_ids).count()
         leaves = LeaveReportStaff.objects.filter(staff_id=staff.admin.id, leave_status=1).count()
         staff_attendance_present_list.append(attendance)
         staff_attendance_leave_list.append(leaves)
         staff_name_list.append(staff.admin.first_name)
 
-    # For Students
-    student_attendance_present_list=[]
-    student_attendance_leave_list=[]
-    student_name_list=[]
+    # Similarly, for students
+    student_attendance_present_list = []
+    student_attendance_leave_list = []
+    student_name_list = []
 
     students = Students.objects.all()
     for student in students:
@@ -68,11 +84,11 @@ def admin_home(request):
         absent = AttendanceReport.objects.filter(student_id=student.id, status=False).count()
         leaves = LeaveReportStudent.objects.filter(student_id=student.id, leave_status=1).count()
         student_attendance_present_list.append(attendance)
-        student_attendance_leave_list.append(leaves+absent)
+        student_attendance_leave_list.append(leaves + absent)
         student_name_list.append(student.admin.first_name)
 
-
-    context={
+    # Context for rendering
+    context = {
         "all_student_count": all_student_count,
         "subject_count": subject_count,
         "class_count": class_count,
@@ -328,25 +344,41 @@ def manage_session(request):
 
 
 def add_session(request):
-    return render(request, "hod_template/add_session_template.html")
+    if request.method == "POST":
+        form = SessionYearForm(request.POST)
+        if form.is_valid():
+            session_year = form.save(commit=False)
+            if session_year.is_current:
+                # Ensure only one session year is marked as current
+                SessionYearModel.objects.update(is_current=False)
+            session_year.save()
+            messages.success(request, "Session Year added successfully!")
+            return redirect("manage_sessions")  # Assuming you have a view to list session years
+        else:
+            for error in form.errors.values():
+                messages.error(request, error)
+    else:
+        form = SessionYearForm()  # Create a new form for GET request
+    return render(request, "hod_template/add_session_template.html", {'form': form})
 
 
 def add_session_save(request):
-    if request.method != "POST":
-        messages.error(request, "Invalid Method")
-        return redirect('add_class')
+    if request.method == "POST":
+        form = SessionYearForm(request.POST)
+        if form.is_valid():
+            session_year = form.save(commit=False)
+            if session_year.is_current:
+                SessionYearModel.objects.update(is_current=False)
+            session_year.save()
+            messages.success(request, "Session Year added successfully!")
+            return redirect("add_session")
+        else:
+            # This will display form specific errors
+            messages.error(request, form.errors.as_text())
+            return redirect("add_session")
     else:
-        session_start_year = request.POST.get('session_start_year')
-        session_end_year = request.POST.get('session_end_year')
-
-        try:
-            sessionyear = SessionYearModel(session_start_year=session_start_year, session_end_year=session_end_year)
-            sessionyear.save()
-            messages.success(request, "Session Year added Successfully!")
-            return redirect("add_session")
-        except:
-            messages.error(request, "Failed to Add Session Year")
-            return redirect("add_session")
+        messages.error(request, "Invalid Method")
+        return redirect('add_session')
 
 
 def edit_session(request, session_id):
@@ -911,3 +943,14 @@ def set_current_session(request, year_id):
     session_year.save()
     return redirect('manage_session_years')
 
+def search_sessions(request):
+    query = request.GET.get('table_search', '')  # Get the search keyword from the query parameter
+    if query:
+        session_years = SessionYearModel.objects.filter(
+            # Assuming you're searching by a string representation of years
+            # Update the filter according to your specific search requirements
+            session_start_year__year__icontains=query) | SessionYearModel.objects.filter(session_end_year__year__icontains=query)
+    else:
+        session_years = SessionYearModel.objects.all()
+
+    return render(request, 'manage_session_years.html', {'session_years': session_years})

@@ -29,6 +29,7 @@ urlpatterns = [
     path('subclasses/<int:subclass_id>/edit/', HodViews.edit_subclass, name='edit_subclass'),
     path('get-subclasses/<int:class_id>/', HodViews.get_subclasses, name='get_subclasses'),
     path('subclasses/<int:subclass_id>/delete/', HodViews.delete_subclass, name='delete_subclass'),
+    path('sessions/search/', HodViews.search_sessions, name='search_sessions'),
     path('manage_session/', HodViews.manage_session, name="manage_session"),
     path('add_session/', HodViews.add_session, name="add_session"),
     path('add_session_save/', HodViews.add_session_save, name="add_session_save"),

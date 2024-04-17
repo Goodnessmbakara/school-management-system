@@ -10,6 +10,21 @@ class SessionYearForm(forms.ModelForm):
     class Meta:
         model = SessionYearModel
         fields = ['session_start_year', 'session_end_year', 'is_current']
+        widgets = {
+            'session_start_year': forms.DateInput(attrs={'type': 'date'}),
+            'session_end_year': forms.DateInput(attrs={'type': 'date'}),
+            'is_current': forms.CheckboxInput()
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_year = cleaned_data.get("session_start_year")
+        end_year = cleaned_data.get("session_end_year")
+        if start_year and end_year:
+            if start_year >= end_year:
+                raise ValidationError("The end year must be greater than the start year.")
+            if start_year.year != end_year.year - 1:
+                raise ValidationError("Session should span exactly one year.")
 
 class ClassForm(forms.ModelForm):
     class Meta:
