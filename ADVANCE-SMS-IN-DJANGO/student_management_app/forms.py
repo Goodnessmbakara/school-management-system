@@ -1,12 +1,25 @@
 from django import forms 
 from django.forms import Form
 from django.core.exceptions import ValidationError
-from student_management_app.models import Classes, SessionYearModel, SubClasses
+from student_management_app.models import Classes, SessionYearModel, SubClasses, Grade
 
 from django.contrib.auth import get_user_model
 CustomUser = get_user_model()
 
 
+class GradeForm(forms.ModelForm):
+    class Meta:
+        model = Grade
+        fields = ['student', 'subject', 'session_year', 'term', 'test1', 'test2', 'test3', 'exam']
+
+    def clean(self):
+        # Add any custom validations here
+        cleaned_data = super().clean()
+        # Example: Validate that test and exam scores are not negative
+        exam = cleaned_data.get('exam')
+        if exam and exam < 0:
+            raise forms.ValidationError("Exam scores cannot be negative.")
+        return cleaned_data
 class SessionYearForm(forms.ModelForm):
     class Meta:
         model = SessionYearModel
@@ -105,7 +118,14 @@ class AddStudentForm(forms.Form):
 
     class_id = forms.ChoiceField(label="Class", choices=[], widget=forms.Select(attrs={"class": "form-control"}))
 
-
+    def clean(self):
+        # Add any custom validations here
+        cleaned_data = super().clean()
+        # Example: Validate that test and exam scores are not negative
+        exam = cleaned_data.get('email')
+        if CustomUser.objects.get(email=email):
+            raise forms.ValidationError("User already exists, Use another email")
+        return cleaned_data
 
 class EditStudentForm(forms.Form):
     email = forms.EmailField(label="Email", max_length=50, widget=forms.EmailInput(attrs={"class":"form-control"}))

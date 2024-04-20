@@ -121,6 +121,7 @@ class Grade(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, blank = True)
     updated_at = models.DateTimeField(auto_now=True, blank=True)
     updated_by = models.ForeignKey(CustomUser, on_delete=models.DO_NOTHING)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.DO_NOTHING, related_name='created_by', null=True, blank=True)
     approved = models.BooleanField(default=False)  # Only true when the admin approves the grades
 
     def clean(self):

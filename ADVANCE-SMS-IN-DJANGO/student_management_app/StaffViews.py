@@ -3,77 +3,76 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage #To upload Profile Picture
 from django.urls import reverse
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
 import json
 
+from student_management_app.models import (CustomUser, 
+    Staffs, Classes, Subject, Students,
+    SessionYearModel, Attendance, AttendanceReport, LeaveReportStaff, FeedBackStaffs, StudentResult)
 
-from student_management_app.models import CustomUser, Staffs, Classes, Subject, Students, SessionYearModel, Attendance, AttendanceReport, LeaveReportStaff, FeedBackStaffs, StudentResult
 
-
+@login_required
 def staff_home(request):
-    # Fetching All Students under Staff
-
-    Subject = Subject.objects.filter(staff_id=request.user.id)
-    class_id_list = []
-    for subject in Subject:
-        single_class = Classes.objects.get(id=subject.classes_id.id)
-        class_id_list.append(single_class.id)
+    # Fetch all Subjects for this staff
+    subjects = Subject.objects.filter(staff_id=request.user.id)
     
-    final_class = []
-    # Removing Duplicate class Id
-    for class_id in class_id_list:
-        if class_id not in final_class:
-            final_class.append(class_id)
-    
-    students_count = Students.objects.filter(class_id__in=final_class).count()
-    subject_count = Subject.count()
+    # Get unique class IDs
+    class_ids = subjects.values_list('class_id', flat=True).distinct()
 
-    # Fetch All Attendance Count
-    attendance_count = Attendance.objects.filter(subject_id__in=Subject).count()
-    # Fetch All Approve Leave
-    staff = Staffs.objects.get(admin=request.user.id)
+    # Count students and subjects under this staff
+    students_count = Students.objects.filter(class_id__in=class_ids).count()
+    subject_count = subjects.count()
+
+    # Fetch all Attendance records for these subjects
+    attendance_count = Attendance.objects.filter(subject_id__in=subjects).count()
+
+    staff = get_object_or_404(Staffs, admin=request.user)
+    # Fetch approved leaves for this staff
     leave_count = LeaveReportStaff.objects.filter(staff_id=staff.id, leave_status=1).count()
 
-    #Fetch Attendance Data by Subject
+    # Collect data for subjects with attendance
     subject_list = []
     attendance_list = []
-    for subject in Subject:
-        attendance_count1 = Attendance.objects.filter(subject_id=subject.id).count()
+    for subject in subjects:
+        attendance_count_subject = Attendance.objects.filter(subject_id=subject.id).count()
         subject_list.append(subject.subject_name)
-        attendance_list.append(attendance_count1)
+        attendance_list.append(attendance_count_subject)
 
-    students_attendance = Students.objects.filter(class_id__in=final_class)
+    # Students' attendance in these classes
     student_list = []
-    student_list_attendance_present = []
-    student_list_attendance_absent = []
-    for student in students_attendance:
-        attendance_present_count = AttendanceReport.objects.filter(status=True, student_id=student.id).count()
-        attendance_absent_count = AttendanceReport.objects.filter(status=False, student_id=student.id).count()
-        student_list.append(student.admin.first_name+" "+ student.admin.last_name)
-        student_list_attendance_present.append(attendance_present_count)
-        student_list_attendance_absent.append(attendance_absent_count)
+    student_attendance_present_list = []
+    student_attendance_absent_list = []
+    students = Students.objects.filter(class_id__in=class_ids)
+    for student in students:
+        attendance_present_count = AttendanceReport.objects.filter(student_id=student.id, status=True).count()
+        attendance_absent_count = AttendanceReport.objects.filter(student_id=student.id, status=False).count()
+        student_list.append(f"{student.admin.first_name} {student.admin.last_name}")
+        student_attendance_present_list.append(attendance_present_count)
+        student_attendance_absent_list.append(attendance_absent_count)
 
-    context={
+    context = {
         "students_count": students_count,
+        "subject_count": subject_count,
         "attendance_count": attendance_count,
         "leave_count": leave_count,
-        "subject_count": subject_count,
         "subject_list": subject_list,
         "attendance_list": attendance_list,
         "student_list": student_list,
-        "attendance_present_list": student_list_attendance_present,
-        "attendance_absent_list": student_list_attendance_absent
+        "student_attendance_present_list": student_attendance_present_list,
+        "student_attendance_absent_list": student_attendance_absent_list
     }
     return render(request, "staff_template/staff_home_template.html", context)
 
 
 
 def staff_take_attendance(request):
-    Subject = Subject.objects.filter(staff_id=request.user.id)
+    subject = Subject.objects.filter(staff_id=request.user.id)
     session_years = SessionYearModel.objects.all()
     context = {
-        "Subject": Subject,
+        "subject": subject,
         "session_years": session_years
     }
     return render(request, "staff_template/take_attendance_template.html", context)
@@ -195,10 +194,10 @@ def save_attendance_data(request):
 
 
 def staff_update_attendance(request):
-    Subject = Subject.objects.filter(staff_id=request.user.id)
+    subject = Subject.objects.filter(staff_id=request.user.id)
     session_years = SessionYearModel.objects.all()
     context = {
-        "Subject": Subject,
+        "subject": subject,
         "session_years": session_years
     }
     return render(request, "staff_template/update_attendance_template.html", context)
@@ -313,10 +312,10 @@ def staff_profile_update(request):
 
 
 def staff_add_result(request):
-    Subject = Subject.objects.filter(staff_id=request.user.id)
+    subject = Subject.objects.filter(staff_id=request.user.id)
     session_years = SessionYearModel.objects.all()
     context = {
-        "Subject": Subject,
+        "subject": subject,
         "session_years": session_years,
     }
     return render(request, "staff_template/add_result_template.html", context)

@@ -12,7 +12,7 @@ from django.views.decorators.cache import cache_control
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
 from student_management_app.models import CustomUser, Staffs, Classes,SubClasses, Subject, Students, SessionYearModel, FeedBackStudent, FeedBackStaffs, LeaveReportStudent, LeaveReportStaff, Attendance, AttendanceReport
-from .forms import AddStudentForm, EditStudentForm
+from .forms import AddStudentForm, EditStudentForm, GradeForm
 
 
 def admin_home(request):
@@ -53,8 +53,7 @@ def admin_home(request):
         else:
             subject_list.append(subject.subject_name + " (Unassigned)")
             student_count_list_in_subject.append(0)
-            
-            
+
     # Include data collection for staff and students
     staff_attendance_present_list = []
     staff_attendance_leave_list = []
@@ -119,7 +118,9 @@ def add_staff_save(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         address = request.POST.get('address')
-
+        if CustomUser.objects.get(email=email):
+            messages.error(request, "Emil already Exist! Log In or use another email!")
+            return redirect('add_staff')
         try:
             user = CustomUser.objects.create_user(username=username, password=password, email=email, first_name=first_name, last_name=last_name, user_type=2)
             user.staffs.address = address
@@ -962,7 +963,7 @@ def add_grade(request):
             messages.error(request, "Error adding grade.")
     else:
         form = GradeForm()
-    return render(request, 'grades/add_grade.html', {'form': form})
+    return render(request, 'grade/add_grade.html', {'form': form})
 
 def edit_grade(request, grade_id):
     grade = get_object_or_404(Grade, id=grade_id)
