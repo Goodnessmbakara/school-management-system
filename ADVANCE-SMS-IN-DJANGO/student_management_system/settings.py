@@ -28,7 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'student_management_app',
-    #'school_website',
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [

@@ -1,79 +1,82 @@
 {% extends 'hod_template/base_template.html' %}
 
+{% load static %}
+{% load widget_tweaks %}
+
 {% block page_title %}
-    Add Student
-{% endblock page_title %}
+Add Student
+{% endblock %}
 
 {% block main_content %}
-{% load static %}
+<link href="{% static 'css/style.css' %}" rel="stylesheet">
 
 <section class="content">
     <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-12">
-                <!-- general form elements -->
+        <div class="row justify-content-center">
+            <div class="col-md-8">
                 <div class="card card-primary">
                     <div class="card-header">
-                        <h3 class="card-title">Add Student</h3>
+                        <h3 class="card-title">Register New Student</h3>
                     </div>
-                    <!-- form start -->
-                    <form role="form" method="POST" action="{% url 'add_student_save' %}" enctype="multipart/form-data" hx-post="{% url 'add_student_save' %}" hx-target="#addStudentForm" hx-swap="outerHTML">
+                    <form method="POST" action="{% url 'add_student' %}" enctype="multipart/form-data">
                         {% csrf_token %}
-                        <div id="addStudentForm">
-                            <div class="card-body">
-                                {% for field in form %}
-                                    <div class="form-group">
-                                        <label>{{ field.label }}</label>
-                                        {{ field }}
-                                    </div>
+                        <div class="card-body">
+                            {% for field in form %}
+                            {% if field.name != 'class_id' and field.name != 'subclass_id' %}
+                            <div class="form-group mb-3">
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field|add_class:"form-control" }}
+                                {% if field.help_text %}
+                                <small class="form-text text-muted">{{ field.help_text }}</small>
+                                {% endif %}
+                                {% for error in field.errors %}
+                                <div class="alert alert-danger">{{ error }}</div>
                                 {% endfor %}
                             </div>
-                            <!-- Placeholder for dynamically loading class and subclass options -->
-                            <div class="form-group">
-                                <label for="id_level">Level</label>
-                                <select name="level" id="id_level" class="form-control" hx-get="{% url 'get-classes-for-level' %}" hx-trigger="change" hx-target="#id_class_id" hx-include="select[name='level']">
-                                    <option value="">-----</option>
-                                    {% for level in form.fields.level.choices %}
-                                        <option value="{{ level.0 }}">{{ level.1 }}</option>
-                                    {% endfor %}
-                                </select>
+                            {% endif %}
+                            {% endfor %}
+                            
+                            <div id="class-container" class="form-group mb-3">
+                                <!-- This will be filled by HTMX -->
                             </div>
-                            <div class="form-group">
-                                <label for="id_class_id">Class</label>
-                                <select name="class_id" id="id_class_id" class="form-control" hx-get="{% url 'get-subclasses-for-class' '9999' %}" hx-trigger="change" hx-target="#id_subclass_id" hx-include="select[name='class_id']">
-                                    <!-- Options populated by HTMX -->
-                                </select>
+                            <div id="subclass-container" class="form-group mb-3">
+                                <!-- This will be filled by HTMX -->
                             </div>
-                            <div class="form-group" id="subclass_container" style="display:none;">
-                                <label for="id_subclass_id">Subclass</label>
-                                <select name="subclass_id" id="id_subclass_id" class="form-control">
-                                    <!-- Placeholder, content replaced by HTMX -->
-                                </select>
-                            </div>
-                            <div class="card-footer">
-                                <button type="submit" class="btn btn-primary">Add Student</button>
-                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <button type="submit" class="btn btn-primary">Submit</button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
-    </div><!-- /.container-fluid -->
+    </div>
 </section>
-{% endblock main_content %}
+
+{% endblock %}
 
 {% block custom_js %}
 <script src="https://unpkg.com/htmx.org"></script>
 <script>
-    document.addEventListener('htmx:afterSwap', function(evt) {
-        if(evt.detail.target.id === 'id_class_id') {
-            let subclassContainer = document.getElementById('subclass_container');
-            if(document.getElementById('id_class_id').children.length > 1) { // Assumes the first option is a placeholder/dummy and checks if there are actual classes loaded
-                subclassContainer.style.display = '';
-            } else {
-                subclassContainer.style.display = 'none';
+    // Listen to HTMX swaps to handle subclass loading dynamically
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        if (event.detail.target.id === 'class-container') {
+            const classSelect = document.querySelector('#class-container select');
+            if (classSelect) {
+                classSelect.addEventListener('change', function() {
+                    const classId = this.value;
+                    htmx.ajax('GET', `{% url 'get-subclasses-for-class' %}?class_id=${classId}`, '#subclass-container');
+                });
             }
         }
     });
+
+    // Handle dynamic loading of classes based on the selected level
+    const levelSelect = document.querySelector('#id_level');
+    levelSelect.addEventListener('change', function() {
+        const level = this.value;
+        htmx.ajax('GET', `{% url 'get-classes-for-level' %}?level=${level}`, '#class-container');
+        document.querySelector('#subclass-container').innerHTML = '';
+    });
 </script>
-{% endblock custom_js %}
+{% endblock %}

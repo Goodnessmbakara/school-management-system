@@ -7,6 +7,18 @@
 {% block main_content %}
 <div class="container">
     <h2>Add Subclass for {{ parent_class.class_name }}</h2>
+
+    <!-- Display error messages if any -->
+    {% if messages %}
+        <div class="alert alert-danger" role="alert">
+            <ul>
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+    
     <form method="post">
         {% csrf_token %}
         <input type="hidden" name="parent_class_id" value="{{ parent_class_id }}">

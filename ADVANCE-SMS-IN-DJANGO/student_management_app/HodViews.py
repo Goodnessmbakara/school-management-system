@@ -280,14 +280,20 @@ def add_subclass(request, class_id):
         subclass_code = request.POST.get('subclass_code')
         teacher_id = request.POST.get('subclass_teacher')
         teacher = CustomUser.objects.get(id=teacher_id) if teacher_id else None
-
-        new_subclass = SubClasses(
-            parent_class=parent_class,
-            subclass_name=parent_class.class_name,  # Automatically setting the subclass name
-            subclass_code=subclass_code,
-            subclass_teacher=teacher
-        )
-        new_subclass.save()
+        
+        if SubClasses.objects.filter(subclass_code=subclass_code).exists():
+            messages.error(request, 'Subclass code must be unique.')
+            return render(request, 'hod_template/add_subclass_template.html', {'parent_class': parent_class, 'teachers': teachers})
+        try:
+            new_subclass = SubClasses(
+                parent_class=parent_class,
+                subclass_name=parent_class.class_name,  # Automatically setting the subclass name
+                subclass_code=subclass_code,
+                subclass_teacher=teacher
+            )
+            new_subclass.save()
+        except  Exception as e:
+            print(e)
         return redirect('manage_subclass', class_id=parent_class.id)
 
     return render(request, 'hod_template/add_subclass_template.html', {
@@ -420,65 +426,76 @@ def delete_session(request, session_id):
 
 
 def add_student(request):
-    form = AddStudentForm()
-    context = {
-        "form": form
-    }
-    return render(request, 'hod_template/add_student_template.html', context)
-
-
-
-
-def add_student_save(request):
-    if request.method != "POST":
-        messages.error(request, "Invalid Method")
-        return redirect('add_student')
-    else:
+    if request.method == 'POST':
         form = AddStudentForm(request.POST, request.FILES)
-
         if form.is_valid():
             first_name = form.cleaned_data['first_name']
             last_name = form.cleaned_data['last_name']
-            username = form.cleaned_data['username']
             email = form.cleaned_data['email']
+            username = form.cleaned_data['username']
             password = form.cleaned_data['password']
             address = form.cleaned_data['address']
-            session_year_id = form.cleaned_data['session_year_id']
-            class_id = form.cleaned_data['class_id']
             gender = form.cleaned_data['gender']
+            profile_pic = form.cleaned_data['profile_pic']
+            session_year_id = form.cleaned_data['session_year_id']
+            level = form.cleaned_data['level']
+            class_id = form.cleaned_data['class_id']
+            subclass_id = form.cleaned_data['subclass_id']
 
-            # Getting Profile Pic first
-            # First Check whether the file is selected or not
-            # Upload only if file is selected
-            if len(request.FILES) != 0:
-                profile_pic = request.FILES['profile_pic']
-                fs = FileSystemStorage()
-                filename = fs.save(profile_pic.name, profile_pic)
-                profile_pic_url = fs.url(filename)
-            else:
-                profile_pic_url = None
+            print(subclass_id)
+            # Create the custom user
+            user = CustomUser.objects.create_user(
+                username=username,
+                password=password,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                user_type=3  # Student
+            )
 
+            # Create the student instance
+            student = Students(
+                admin=user,
+                gender=gender,
+                profile_pic=profile_pic,
+                address=address,
+                class_id=class_id,
+                sub_class_id = subclass_id,
+                session_year_id=session_year_id
+            )
 
-            try:
-                user = CustomUser.objects.create_user(username=username, password=password, email=email, first_name=first_name, last_name=last_name, user_type=3)
-                user.students.address = address
+            # # Add the student to the selected subclass (if applicable)
+            # if subclass_id and level != 'Nursery':
+            #     subclass = SubClasses.objects.get(id=subclass_id.id)
+            #     subclass.students.add(student)
+            # if class_id and level == 'Nursery':
+            #     single_class = Classes.objects.get(id=single_class_id)
+            #     single_class.students.add(student)
+            student.save()
 
-                class_obj = Classes.objects.get(id=class_id)
-                user.students.class_id = class_obj
-
-                session_year_obj = SessionYearModel.objects.get(id=session_year_id)
-                user.students.session_year_id = session_year_obj
-
-                user.students.gender = gender
-                user.students.profile_pic = profile_pic_url
-                user.save()
-                messages.success(request, "Student Added Successfully!")
-                return redirect('add_student')
-            except:
-                messages.error(request, "Failed to Add Student!")
-                return redirect('add_student')
+            messages.success(request, "Student added successfully!")
+            return redirect('manage_student')
         else:
-            return redirect('add_student')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field.capitalize()}: {error}")  
+
+    else:
+        form = AddStudentForm()
+
+    context = {
+        'form': form
+    }
+    return render(request, 'hod_template/add_student_template.html', context)
+
+def get_classes_or_subclasses(request):
+    level_id = request.GET.get('level')
+    if level_id == 'Nursery':  # Assuming you have this identifier for Nursery
+        classes = Classes.objects.filter(level=level_id)
+        return render(request, 'hod_template/class_options.html', {'classes': classes})
+    else:
+        subclasses = SubClasses.objects.filter(parent_class__level=level_id)
+        return render(request, 'hod_template/subclass_options.html', {'subclasses': subclasses})
 
 
 def manage_student(request):
@@ -705,7 +722,8 @@ def get_classes_for_level(request):
     html = render_to_string('hod_template/class_options.html', context)
     return HttpResponse(html)
 
-def get_subclasses_for_class(request, class_id):
+def get_subclasses_for_class(request):
+    class_id = request.GET.get('class_id')
     subclasses = SubClasses.objects.filter(parent_class_id=class_id).order_by('subclass_name')
     context = {'subclasses': subclasses}
     html = render_to_string('hod_template/subclass_options.html', context)
@@ -953,17 +971,28 @@ def search_sessions(request):
     return render(request, 'manage_session_years.html', {'session_years': session_years})
 
 def add_grade(request):
+    session_years = SessionYearModel.objects.all()
+    current_session = session_years.filter(is_current=True).first()
+
     if request.method == 'POST':
         form = GradeForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Grade added successfully!")
+            # Set the user who updated the grades
+            grade_instance = form.save(commit=False)
+            grade_instance.updated_by = request.user
+            grade_instance.save()
+            messages.success(request, "Grade added/updated successfully!")
             return redirect('manage_grades')
         else:
-            messages.error(request, "Error adding grade.")
+            messages.error(request, "Error adding/updating grade.")
     else:
         form = GradeForm()
-    return render(request, 'grade/add_grade.html', {'form': form})
+
+    return render(request, 'grades_template/add_grades.html', {
+        'form': form,
+        'session_years': session_years,
+        'current_session': current_session
+    })
 
 def edit_grade(request, grade_id):
     grade = get_object_or_404(Grade, id=grade_id)

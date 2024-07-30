@@ -28,6 +28,7 @@ urlpatterns = [
     path('subclasses/add/<int:class_id>/', HodViews.add_subclass, name='add_subclass'),
     path('subclasses/<int:subclass_id>/edit/', HodViews.edit_subclass, name='edit_subclass'),
     path('get-subclasses/<int:class_id>/', HodViews.get_subclasses, name='get_subclasses'),
+    path('get_classes_or_subclasses/', HodViews.get_classes_or_subclasses, name = 'get-classes-or-subclasses'),
     path('subclasses/<int:subclass_id>/delete/', HodViews.delete_subclass, name='delete_subclass'),
     path('sessions/search/', HodViews.search_sessions, name='search_sessions'),
     path('manage_session/', HodViews.manage_session, name="manage_session"),
@@ -37,7 +38,7 @@ urlpatterns = [
     path('edit_session_save/', HodViews.edit_session_save, name="edit_session_save"),
     path('delete_session/<session_id>/', HodViews.delete_session, name="delete_session"),
     path('add_student/', HodViews.add_student, name="add_student"),
-    path('add_student_save/', HodViews.add_student_save, name="add_student_save"),
+    #path('add_student_save/', HodViews.add_student_save, name="add_student_save"),
     path('edit_student/<student_id>', HodViews.edit_student, name="edit_student"),
     path('edit_student_save/', HodViews.edit_student_save, name="edit_student_save"),
     path('manage_student/', HodViews.manage_student, name="manage_student"),
@@ -67,7 +68,7 @@ urlpatterns = [
     path('admin_profile_update/', HodViews.admin_profile_update, name="admin_profile_update"),
     #URLS for for classes management
     path('get-classes-for-level/', HodViews.get_classes_for_level, name='get-classes-for-level'),
-    path('get-subclasses-for-class/<int:class_id>/', HodViews.get_subclasses_for_class, name='get-subclasses-for-class'),
+    path('get-subclasses-for-class/', HodViews.get_subclasses_for_class, name='get-subclasses-for-class'),
 
     #URLS FOR  managing grades by admin
     path('grades/add/', HodViews.add_grade, name='add_grade'),

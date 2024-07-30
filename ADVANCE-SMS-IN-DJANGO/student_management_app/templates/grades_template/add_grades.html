@@ -1,0 +1,70 @@
+{% extends 'hod_template/base_template.html' %}
+
+{% block page_title %}
+Add/Edit Grades
+{% endblock page_title %}
+
+{% block main_content %}
+{% load static %}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <form method="POST" action="{% url 'add_grade' %}">
+                {% csrf_token %}
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Add/Edit Grades</h3>
+                    </div>
+                    <div class="card-body">
+                        <!-- Session Year Selection -->
+                        <div class="form-group">
+                            <label for="sessionYear">Session Year:</label>
+                            <select id="sessionYear" name="session_year" class="form-control" required>
+                                {% for session in session_years %}
+                                <option value="{{ session.id }}" {% if session.id == current_session.id %} selected {% endif %}>
+                                    {{ session }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <!-- Student Selection -->
+                        <div class="form-group">
+                            <label for="student">Student:</label>
+                            <select id="studentDropdown" name="student" class="form-control" required>
+                                <!-- Options are filled by AJAX -->
+                            </select>
+                        </div>
+                        <!-- Subjects and Grades Table -->
+                        <div id="gradesSection" style="display: none;">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th>Test 1</th>
+                                        <th>Test 2</th>
+                                        <th>Test 3</th>
+                                        <th>Exam</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="gradesTableBody">
+                                    <!-- Filled by AJAX -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary">Save Grades</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock main_content %}
+
+{% block custom_js %}
+<script src="{% static 'js/add_grade.js' %}"></script>
+{% endblock custom_js %}

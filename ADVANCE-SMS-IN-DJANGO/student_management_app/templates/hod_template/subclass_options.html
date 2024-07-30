@@ -1,5 +1,9 @@
-<!-- subclass_options.html -->
-<option value="">Select a Subclass</option>
-{% for subclass in subclasses %}
-<option value="{{ subclass.id }}">{{ subclass.subclass_name }}</option>
+<select name="subclass_id" id="id_subclass_id" class="form-control">
+    <option value="">Select a Subclass</option>
+    {% for subclass in subclasses %}
+    <option value="{{ subclass.id }}">{{ subclass.subclass_name }} ({{ subclass.subclass_code }})</option>
+    {% endfor %}
+</select>
+{% for error in form.subclass_id.errors %}
+<div class="alert alert-danger">{{ error }}</div>
 {% endfor %}

@@ -35,26 +35,22 @@ class Staffs(models.Model):
     objects = models.Manager()
 
 class Students(models.Model):
+    GENDER_CHOICES =(
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        )
     id = models.AutoField(primary_key=True)
     admin = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    gender = models.CharField(max_length=50)
+    gender = models.CharField(max_length=50, choices=GENDER_CHOICES)
     profile_pic = models.FileField()
     address = models.TextField()
-    class_id = models.ForeignKey('Classes', on_delete=models.DO_NOTHING)
+    class_id = models.ForeignKey('Classes', on_delete=models.DO_NOTHING, related_name = 'students', null = True, blank = True)
+    sub_class_id = models.ForeignKey('SubClasses', on_delete=models.DO_NOTHING, related_name = 'subclass_students', null = True, blank = True)
     session_year_id = models.ForeignKey("SessionYearModel", on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
 
-class SessionYearModel(models.Model):
-    session_start_year = models.DateField()
-    session_end_year = models.DateField()
-    is_current = models.BooleanField(default=False)
-
-    def __str__(self):
-        start_year = self.session_start_year.strftime('%Y')
-        end_year = self.session_end_year.strftime('%Y')
-        return f"{start_year}/{end_year}"
 
 class Classes(models.Model):
     LEVEL_CHOICES = (
@@ -73,7 +69,6 @@ class Classes(models.Model):
     def __str__(self):
         return f" {self.class_name}"
 
-# models.py
 
 class SubClasses(models.Model):
     parent_class = models.ForeignKey(Classes, on_delete=models.CASCADE, related_name='subclasses')
@@ -91,6 +86,15 @@ class SubClasses(models.Model):
         return f"{self.subclass_name} ({self.subclass_code})"
 
 
+class SessionYearModel(models.Model):
+    session_start_year = models.DateField()
+    session_end_year = models.DateField()
+    is_current = models.BooleanField(default=False)
+
+    def __str__(self):
+        start_year = self.session_start_year.strftime('%Y')
+        end_year = self.session_end_year.strftime('%Y')
+        return f"{start_year}/{end_year}"
 
 class Subject(models.Model):
     subject_name = models.CharField(max_length=255)

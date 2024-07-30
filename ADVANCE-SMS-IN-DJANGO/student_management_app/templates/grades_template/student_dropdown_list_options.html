@@ -1,0 +1,10 @@
+{% if students %}
+    <option value="">Select a Student</option>
+    {% for student in students %}
+        <option value="{{ student.id }}">
+            {{ student.admin.first_name }} {{ student.admin.last_name }} - {{ student.admin.email }}
+        </option>
+    {% endfor %}
+{% else %}
+    <option value="">No students available</option>
+{% endif %}
