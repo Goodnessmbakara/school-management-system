@@ -1,9 +1,10 @@
-from django import forms 
-from django.forms import Form
-from django.core.exceptions import ValidationError
-from student_management_app.models import Classes, SessionYearModel, SubClasses, Grade, Students
-
+from django import forms
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.forms import Form
+from student_management_app.models import (Classes, Grade, SessionYearModel,
+                                           Students, SubClasses)
+
 CustomUser = get_user_model()
 
 
@@ -73,11 +74,21 @@ class DateInput(forms.DateInput):
 
 
 class AddStudentForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}))
     class Meta:
         model = CustomUser
         fields = ['first_name', 'last_name', 'email', 'username', 'password']
 
-    # Additional fields for Students model
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'class': 'form-control'}),
+            'gender': forms.Select(attrs={'class': 'form-control'}),
+            'profile_pic': forms.FileInput(attrs={'class': 'form-control'})
+        }
+    # # Additional fields for Students model
     address = forms.CharField(max_length=255, widget=forms.TextInput(attrs={'class': 'form-control'}))
     gender = forms.ChoiceField(choices=Students.GENDER_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
     profile_pic = forms.ImageField(required=False, widget=forms.FileInput(attrs={'class': 'form-control'}))

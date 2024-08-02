@@ -21,7 +21,6 @@ urlpatterns = [
     path('add_class_save/', HodViews.add_class_save, name="add_class_save"),
     path('manage_class/', HodViews.manage_class, name="manage_class"),
     path('edit_class/<class_id>/', HodViews.edit_class, name="edit_class"),
-    path('edit_class_save/', HodViews.edit_class_save, name="edit_class_save"),
     path('delete_class/<class_id>/', HodViews.delete_class, name="delete_class"),
     path('classes/<int:class_id>/subclasses/', HodViews.manage_subclass, name='manage_subclass'),
     path('subclasses/add/<int:class_id>/', HodViews.add_subclass, name='add_subclass'),

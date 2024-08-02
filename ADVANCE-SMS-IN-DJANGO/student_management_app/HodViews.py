@@ -274,34 +274,33 @@ def manage_class(request):
 
 
 def edit_class(request, class_id):
-    single_class = Classes.objects.get(id=class_id)
-    context = {
-        "single_class": single_class,
-        "id": class_id
-    }
-    return render(request, 'hod_template/edit_class_template.html', context)
-
-
-def edit_class_save(request):
-    if request.method != "POST":
-        HttpResponse("Invalid Method")
-    else:
-        class_id = request.POST.get('class_id')
+    # Fetch the class and possible teachers
+    single_class = get_object_or_404(Classes, id=class_id)
+    class_teachers = CustomUser.objects.filter(user_type=2)
+    
+    if request.method == 'POST':
         class_name = request.POST.get('class')
+        teacher_id = request.POST.get('class_teacher')
 
         try:
-            single_class = Classes.objects.get(id=class_id)
+            # Update the class instance
             single_class.class_name = class_name
+            single_class.class_teacher = get_object_or_404(CustomUser, id=teacher_id) if teacher_id else None
             single_class.save()
 
             messages.success(request, "Class Updated Successfully.")
-            return redirect('/edit_class/'+class_id)
+            return redirect('manage_class')
 
-        except:
-            messages.error(request, "Failed to Update Class.")
-            return redirect('/edit_class/'+class_id)
+        except Exception as e:
+            messages.error(request, f"Failed to Update Class: {e}")
+            return redirect(f'/edit_class/{class_id}')
 
-
+    # Render the form with current class and teacher data
+    return render(request, 'hod_template/edit_class_template.html', {
+        'class': single_class,
+        'class_teachers': class_teachers,
+    })
+    
 def delete_class(request, class_id):
     single_class = Classes.objects.get(id=class_id)
     try:
@@ -475,36 +474,63 @@ def add_student(request):
     if request.method == 'POST':
         form = AddStudentForm(request.POST, request.FILES)
         if form.is_valid():
-            try:
-                with transaction.atomic():
-                    user = CustomUser.objects.create_user(
-                        username=form.cleaned_data['username'],
-                        password=form.cleaned_data['password'],
-                        email=form.cleaned_data['email'],
-                        first_name=form.cleaned_data['first_name'],
-                        last_name=form.cleaned_data['last_name'],
-                        user_type=3  # Student
-                    )
-                    
-                    student = Students(
-                        admin=user,
-                        gender=form.cleaned_data['gender'],
-                        profile_pic=form.cleaned_data['profile_pic'],
-                        address=form.cleaned_data['address'],
-                        class_id=form.cleaned_data['class_id'],
-                        sub_class_id=form.cleaned_data['subclass_id'],
-                        session_year_id=form.cleaned_data['session_year_id']
-                    )
-                    student.save()
+            first_name = form.cleaned_data['first_name']
+            last_name = form.cleaned_data['last_name']
+            email = form.cleaned_data['email']
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
+            address = form.cleaned_data['address']
+            gender = form.cleaned_data['gender']
+            profile_pic = form.cleaned_data['profile_pic']
+            session_year_id = form.cleaned_data['session_year_id']
+            level = form.cleaned_data['level']
+            class_id = form.cleaned_data['class_id']
+            subclass_id = form.cleaned_data['subclass_id']
 
-                    messages.success(request, "Student added successfully!")
-                    return redirect('manage_student')
-            except Exception as e:
-                messages.error(request, f"Failed to add student! {e}")
+            # Create the custom user
+            user = CustomUser.objects.create_user(
+                username=username,
+                password=password,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                user_type=3  # Student
+            )
+
+            # Create the student instance
+            student = Students(
+                admin=user,
+                gender=gender,
+                profile_pic=profile_pic,
+                address=address,
+                class_id=class_id,
+                sub_class_id=subclass_id,
+                session_year_id=session_year_id
+            )
+
+            student.save()
+
+            messages.success(request, "Student added successfully!")
+            return redirect('manage_student')
         else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field.capitalize()}: {error}")
+            # Collect errors
+            errors = {field: error for field, error in form.errors.items()}
+            context = {
+                'form': form,
+                'errors': errors,
+                'first_name': request.POST.get('first_name', ''),
+                'last_name': request.POST.get('last_name', ''),
+                'email': request.POST.get('email', ''),
+                'username': request.POST.get('username', ''),
+                'address': request.POST.get('address', ''),
+                'gender': request.POST.get('gender', ''),
+                'profile_pic': request.FILES.get('profile_pic', ''),
+                'session_year_id': request.POST.get('session_year_id', ''),
+                'level': request.POST.get('level', ''),
+                'class_id': request.POST.get('class_id', ''),
+                'subclass_id': request.POST.get('subclass_id', ''),
+            }
+            return render(request, 'hod_template/add_student_template.html', context)
     else:
         form = AddStudentForm()
 

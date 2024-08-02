@@ -2,75 +2,76 @@
 
 {% block page_title %}
     Edit Class | #ID : {{ class.id }}
-{% endblock page_title %}
+{% endblock %}
 
 {% block main_content %}
 
 {% load static %}
 
 <section class="content">
-        <div class="container-fluid">
-
-            <div class="row">
-                <div class="col-md-12">
-                    <!-- general form elements -->
-                    <div class="card card-primary">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <!-- General form elements -->
+                <div class="card card-primary">
                     <div class="card-header">
                         <h3 class="card-title">Edit Class</h3>
                     </div>
                     <!-- /.card-header -->
-                    <!-- form start -->
-                    <form role="form" method="POST" action="{% url 'edit_class_save' %}">
+                    <!-- Form start -->
+                    <form role="form" method="POST" action="{% url 'edit_class' class_id=class.id %}">
                         {% csrf_token %}
-
-                        
-                                {% comment %} Display Messages {% endcomment %}
-                                {% if messages %}
-                                <div class="form-group">
-                                <div class="col-12">
-                                    {% for message in messages %}
-                                    {% if message.tags == "error" %}
-                                        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-top: 10px;">
-                                        {{ message }}
-                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                        </div>
-                                    {% elif message.tags == "success" %}
-                                        <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin-top: 10px;">
-                                        {{ message }}
-                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                        </div>
-                                    {% endif %}
-                                    {% endfor %}
+                        <!-- Display Messages -->
+                        {% if messages %}
+                        <div class="form-group">
+                            <div class="col-12">
+                                {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
                                 </div>
-                                </div>
-                                {% endif %}
-                            
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
 
                         <div class="card-body">
                             <div class="form-group">
-                                <label>Class Name </label>
-                                <input type="text" class="form-control" name="class" value="{{ class.class_name }}">
+                                <label for="class_name">Class Name</label>
+                                <input type="text" class="form-control" id="class_name" name="class" value="{{ class.class_name }}" placeholder="Enter class name" required>
                                 <input type="hidden" name="class_id" value="{{ class.id }}" />
                             </div>
-
+                            <div class="form-group">
+                                <label for="class_teacher">Class Teacher</label>
+                                <select class="form-control select2" id="class_teacher" name="class_teacher" required>
+                                    <option value="" disabled>Select a teacher</option>
+                                    {% for teacher in class_teachers %}
+                                        <option value="{{ teacher.id }}" {% if teacher.id == class.class_teacher.id %}selected{% endif %}>{{ teacher.get_full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </div>
                         <!-- /.card-body -->
 
                         <div class="card-footer">
-                        <button type="submit" class="btn btn-primary">Update Class</button>
+                            <button type="submit" class="btn btn-primary">Update Class</button>
                         </div>
                     </form>
-                    </div>
-                    <!-- /.card -->
-
                 </div>
+                <!-- /.card -->
             </div>
+        </div>
+    </div><!-- /.container-fluid -->
+</section>
 
-        </div><!-- /.container-fluid -->
-      </section>
+{% block scripts %}
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('.select2').select2();
+    });
+</script>
+{% endblock %}
 
-  {% endblock main_content %}
+{% endblock %}
