@@ -42,6 +42,17 @@ Edit Subclass | #ID : {{ subclass.id }}
                                 <label for="subclass_code">Subclass Code</label>
                                 <input type="text" class="form-control" id="subclass_code" name="subclass_code" value="{{ subclass.subclass_code }}" placeholder="Enter subclass code" required>
                             </div>
+                            <div class="form-group">
+                                <label for="subclass_teacher">Subclass Teacher</label>
+                                <select class="form-control select2" id="subclass_teacher" name="subclass_teacher" required>
+                                    <option value="{{ subclass.subclass_teacher.id }}">{{ subclass.subclass_teacher.get_full_name }}</option>
+                                    {% for teacher in subclass_teachers %}
+                                        {% if teacher.id != subclass.subclass_teacher.id %}
+                                            <option value="{{ teacher.id }}">{{ teacher.get_full_name }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </div>
                         <!-- /.card-body -->
 
@@ -55,5 +66,13 @@ Edit Subclass | #ID : {{ subclass.id }}
         </div>
     </div><!-- /.container-fluid -->
 </section>
+
+{% block scripts %}
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('.select2').select2();
+    });
+</script>
+{% endblock %}
 
 {% endblock main_content %}

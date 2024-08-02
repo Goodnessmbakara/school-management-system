@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 class CustomUser(AbstractUser):
     user_type_data = ((1, "HOD"), (2, "Staff"), (3, "Student"))
     user_type = models.CharField(default=1, choices=user_type_data, max_length=10)
-
+    def __str__(self):
+        return self.id
 
 class AdminHOD(models.Model):
     id = models.AutoField(primary_key=True)
@@ -262,21 +263,21 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
         try:
             if instance.user_type == 1:
                 AdminHOD.objects.create(admin=instance)
-            elif instance.user_type == 2:
-                Staffs.objects.create(admin=instance)
-            elif instance.user_type == 3:
-                default_class = Classes.objects.first()  # Assumes at least one class exists
-                default_session_year = SessionYearModel.objects.first()  # Assumes at least one session year exists
+            # elif instance.user_type == 2:
+            #     Staffs.objects.create(admin=instance)
+            # elif instance.user_type == 3:
+            #     default_class = Classes.objects.first()  # Assumes at least one class exists
+            #     default_session_year = SessionYearModel.objects.first()  # Assumes at least one session year exists
 
-                if not default_class or not default_session_year:
-                    raise ObjectDoesNotExist("Default Class or SessionYearModel does not exist.")
+            #     if not default_class or not default_session_year:
+            #         raise ObjectDoesNotExist("Default Class or SessionYearModel does not exist.")
 
-                Students.objects.create(
-                    admin=instance,
-                    class_id=default_class,
-                    session_year_id=default_session_year,
-                    address="", profile_pic="", gender=""
-                )
+            #     Students.objects.create(
+            #         admin=instance,
+            #         class_id=default_class,
+            #         session_year_id=default_session_year,
+            #         address="", profile_pic="", gender=""
+            #     )
         except ObjectDoesNotExist as e:
             logger.error(f"Failed to create user profile for {instance.username}: {e}")
             # Here you can also add additional actions like sending an email notification.

@@ -1,18 +1,26 @@
-from django.shortcuts import render, redirect
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.contrib import messages
-from django.core.files.storage import FileSystemStorage #To upload Profile Picture
-from django.urls import reverse
-from django.views.decorators.csrf import csrf_exempt
-from django.core import serializers
 import json
-from .forms import ClassForm, SubClassForm, SessionYearForm
-from django.template.loader import render_to_string
-from django.views.decorators.cache import cache_control
-from django.shortcuts import get_object_or_404
+
+from django.contrib import messages
+from django.core import serializers
 from django.core.exceptions import ValidationError
-from student_management_app.models import CustomUser, Staffs, Classes,SubClasses, Subject, Students, SessionYearModel, FeedBackStudent, FeedBackStaffs, LeaveReportStudent, LeaveReportStaff, Attendance, AttendanceReport
-from .forms import AddStudentForm, EditStudentForm, GradeForm
+from django.core.files.storage import \
+    FileSystemStorage  # To upload Profile Picture
+from django.db import transaction
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.views.decorators.cache import cache_control
+from django.views.decorators.csrf import csrf_exempt
+from student_management_app.models import (Attendance, AttendanceReport,
+                                           Classes, CustomUser, FeedBackStaffs,
+                                           FeedBackStudent, LeaveReportStaff,
+                                           LeaveReportStudent,
+                                           SessionYearModel, Staffs, Students,
+                                           SubClasses, Subject)
+
+from .forms import (AddStudentForm, ClassForm, EditStudentForm, GradeForm,
+                    SessionYearForm, SubClassForm)
 
 
 def admin_home(request):
@@ -104,13 +112,8 @@ def admin_home(request):
 
 
 def add_staff(request):
-    return render(request, "hod_template/add_staff_template.html")
-
-
-def add_staff_save(request):
     if request.method != "POST":
-        messages.error(request, "Invalid Method ")
-        return redirect('add_staff')
+        return render(request, "hod_template/add_staff_template.html")
     else:
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
@@ -118,18 +121,55 @@ def add_staff_save(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         address = request.POST.get('address')
-        if CustomUser.objects.get(email=email):
-            messages.error(request, "Emil already Exist! Log In or use another email!")
-            return redirect('add_staff')
+        
+        context = {
+                'email': email,
+                'username': username,
+                'first_name': first_name,
+                'last_name': last_name,
+                'address': address
+            }
+        
+        if not password:
+            messages.error(request, "Password is required!")
+            return render(request, 'hod_template/add_staff_template.html', context=context)
+
+        if CustomUser.objects.filter(email=email).exists() or CustomUser.objects.filter(username=username).exists():
+            messages.error(request, "Email or username already Exist! Log In or use another email!")
+            return render(request,'hod_template/add_staff_template.html', context=context)
+        
         try:
-            user = CustomUser.objects.create_user(username=username, password=password, email=email, first_name=first_name, last_name=last_name, user_type=2)
-            user.staffs.address = address
-            user.save()
-            messages.success(request, "Staff Added Successfully!")
-            return redirect('add_staff')
-        except:
-            messages.error(request, "Failed to Add Staff!")
-            return redirect('add_staff')
+            with transaction.atomic():
+                
+                user = CustomUser.objects.create_user(
+                        username=username,
+                        password=password,
+                        email=email,
+                        first_name=first_name,
+                        last_name=last_name,
+                        user_type=2
+                        )
+                
+                 # Check if the user was created successfully
+                if not user:
+                    messages.error(request, "Failed to create user!")
+                    return render(request, 'hod_template/add_staff_template.html', context=context)
+
+                 # Check if the user already has a staff entry
+                if Staffs.objects.filter(admin=user).exists():
+                    messages.error(request, "Staff entry for this user already exists!")
+                    return render(request, 'hod_template/add_staff_template.html', context=context)
+
+                staff = Staffs.objects.create(admin=user, address=address)
+                # Check if the staff was created successfully
+                if not staff:
+                    messages.error(request, "Failed to create staff entry!")
+                    return render(request, 'hod_template/add_staff_template.html', context=context)
+            messages.success(request, 'Staff added successfully.')
+            return redirect('manage_staff')
+        except Exception as e:
+            messages.error(request, f"Failed to Add Staff!{e}")
+            return render(request,'hod_template/add_staff_template.html', context=context)
 
 
 
@@ -176,7 +216,7 @@ def edit_staff_save(request):
             staff_model.save()
 
             messages.success(request, "Staff Updated Successfully.")
-            return redirect('/edit_staff/'+staff_id)
+            return redirect('manage_staff')
 
         except:
             messages.error(request, "Failed to Update Staff.")
@@ -282,7 +322,7 @@ def add_subclass(request, class_id):
         teacher = CustomUser.objects.get(id=teacher_id) if teacher_id else None
         
         if SubClasses.objects.filter(subclass_code=subclass_code).exists():
-            messages.error(request, 'Subclass code must be unique.')
+            messages.error(request, f'Subclass Code; {parent_class} ({subclass_code}) already exists, please create a new subclass')
             return render(request, 'hod_template/add_subclass_template.html', {'parent_class': parent_class, 'teachers': teachers})
         try:
             new_subclass = SubClasses(
@@ -306,16 +346,22 @@ def add_subclass(request, class_id):
 
 def edit_subclass(request, subclass_id):
     subclass = get_object_or_404(SubClasses, id=subclass_id)
+    subclass_teachers = CustomUser.objects.filter(user_type=2)
     
     if request.method == 'POST':
         subclass_code = request.POST.get('subclass_code')
+        teacher_id = request.POST.get('subclass_teacher')
+        teacher = get_object_or_404(CustomUser, id=teacher_id) if teacher_id else None
+
         # Update subclass instance. For example:
         subclass.subclass_code = subclass_code
+        subclass.subclass_teacher = teacher
+        
         subclass.save()
         # Redirect to the subclass management page for the parent class.
         return redirect('manage_subclass', class_id=subclass.parent_class.id)
     
-    return render(request, 'hod_template/edit_subclass_template.html', {'subclass': subclass})
+    return render(request, 'hod_template/edit_subclass_template.html', {'subclass': subclass, 'subclass_teachers':subclass_teachers})
 
 def delete_subclass(request, subclass_id):
     # Fetch the subclass
@@ -429,57 +475,36 @@ def add_student(request):
     if request.method == 'POST':
         form = AddStudentForm(request.POST, request.FILES)
         if form.is_valid():
-            first_name = form.cleaned_data['first_name']
-            last_name = form.cleaned_data['last_name']
-            email = form.cleaned_data['email']
-            username = form.cleaned_data['username']
-            password = form.cleaned_data['password']
-            address = form.cleaned_data['address']
-            gender = form.cleaned_data['gender']
-            profile_pic = form.cleaned_data['profile_pic']
-            session_year_id = form.cleaned_data['session_year_id']
-            level = form.cleaned_data['level']
-            class_id = form.cleaned_data['class_id']
-            subclass_id = form.cleaned_data['subclass_id']
+            try:
+                with transaction.atomic():
+                    user = CustomUser.objects.create_user(
+                        username=form.cleaned_data['username'],
+                        password=form.cleaned_data['password'],
+                        email=form.cleaned_data['email'],
+                        first_name=form.cleaned_data['first_name'],
+                        last_name=form.cleaned_data['last_name'],
+                        user_type=3  # Student
+                    )
+                    
+                    student = Students(
+                        admin=user,
+                        gender=form.cleaned_data['gender'],
+                        profile_pic=form.cleaned_data['profile_pic'],
+                        address=form.cleaned_data['address'],
+                        class_id=form.cleaned_data['class_id'],
+                        sub_class_id=form.cleaned_data['subclass_id'],
+                        session_year_id=form.cleaned_data['session_year_id']
+                    )
+                    student.save()
 
-            print(subclass_id)
-            # Create the custom user
-            user = CustomUser.objects.create_user(
-                username=username,
-                password=password,
-                email=email,
-                first_name=first_name,
-                last_name=last_name,
-                user_type=3  # Student
-            )
-
-            # Create the student instance
-            student = Students(
-                admin=user,
-                gender=gender,
-                profile_pic=profile_pic,
-                address=address,
-                class_id=class_id,
-                sub_class_id = subclass_id,
-                session_year_id=session_year_id
-            )
-
-            # # Add the student to the selected subclass (if applicable)
-            # if subclass_id and level != 'Nursery':
-            #     subclass = SubClasses.objects.get(id=subclass_id.id)
-            #     subclass.students.add(student)
-            # if class_id and level == 'Nursery':
-            #     single_class = Classes.objects.get(id=single_class_id)
-            #     single_class.students.add(student)
-            student.save()
-
-            messages.success(request, "Student added successfully!")
-            return redirect('manage_student')
+                    messages.success(request, "Student added successfully!")
+                    return redirect('manage_student')
+            except Exception as e:
+                messages.error(request, f"Failed to add student! {e}")
         else:
             for field, errors in form.errors.items():
                 for error in errors:
-                    messages.error(request, f"{field.capitalize()}: {error}")  
-
+                    messages.error(request, f"{field.capitalize()}: {error}")
     else:
         form = AddStudentForm()
 
@@ -736,22 +761,13 @@ def get_subclasses(request, class_id):
 @csrf_exempt
 def check_email_exist(request):
     email = request.POST.get("email")
-    user_obj = CustomUser.objects.filter(email=email).exists()
-    if user_obj:
-        return HttpResponse(True)
-    else:
-        return HttpResponse(False)
+    return HttpResponse(CustomUser.objects.filter(email=email).exists())
 
 
 @csrf_exempt
 def check_username_exist(request):
     username = request.POST.get("username")
-    user_obj = CustomUser.objects.filter(username=username).exists()
-    if user_obj:
-        return HttpResponse(True)
-    else:
-        return HttpResponse(False)
-
+    return HttpResponse(CustomUser.objects.filter(username=username).exists())
 
 
 def student_feedback_message(request):

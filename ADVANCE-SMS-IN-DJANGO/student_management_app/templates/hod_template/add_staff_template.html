@@ -9,56 +9,53 @@
 {% load static %}
 
 <section class="content">
-        <div class="container-fluid">
-
-            <div class="row">
-                <div class="col-md-12">
-                    <!-- general form elements -->
-                    <div class="card card-primary">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <!-- general form elements -->
+                <div class="card card-primary">
                     <div class="card-header">
                         <h3 class="card-title">Add Staff</h3>
                     </div>
                     <!-- /.card-header -->
                     <!-- form start -->
-                    <form role="form" method="POST" action="{% url 'add_staff_save' %}">
+                    <form role="form" method="POST" action="{% url 'add_staff' %}">
                         {% csrf_token %}
-
                         
-                                {% comment %} Display Messages {% endcomment %}
-                                {% if messages %}
-                                <div class="form-group">
+                        <!-- Display Messages -->
+                        {% if messages %}
+                            <div class="form-group">
                                 <div class="col-12">
                                     {% for message in messages %}
-                                    {% if message.tags == "error" %}
-                                        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-top: 10px;">
-                                        {{ message }}
-                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                        </div>
-                                    {% elif message.tags == "success" %}
-                                        <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin-top: 10px;">
-                                        {{ message }}
-                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                        </div>
-                                    {% endif %}
+                                        {% if message.tags == "error" %}
+                                            <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-top: 10px;">
+                                                {{ message }}
+                                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                        {% elif message.tags == "success" %}
+                                            <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin-top: 10px;">
+                                                {{ message }}
+                                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                        {% endif %}
                                     {% endfor %}
                                 </div>
-                                </div>
-                                {% endif %}
-                            
+                            </div>
+                        {% endif %}
 
                         <div class="card-body">
                             <div class="form-group">
                                 <label>Email address</label>
-                                <input type="email" class="form-control" name="email" placeholder="Enter email" id="id_email">
+                                <input type="email" class="form-control" name="email" placeholder="Enter email" id="id_email" value="{{ email|default:'' }}">
                             </div>
 
                             <div class="form-group">
                                 <label>Username</label>
-                                <input type="text" class="form-control" name="username" placeholder="Username" id="id_username">
+                                <input type="text" class="form-control" name="username" placeholder="Username" id="id_username" value="{{ username|default:'' }}">
                             </div>
 
                             <div class="form-group">
@@ -68,110 +65,95 @@
 
                             <div class="form-group">
                                 <label>First Name</label>
-                                <input type="text" class="form-control" name="first_name" placeholder="First Name">
+                                <input type="text" class="form-control" name="first_name" placeholder="First Name" value="{{ first_name|default:'' }}">
                             </div>
 
                             <div class="form-group">
                                 <label>Last Name</label>
-                                <input type="text" class="form-control" name="last_name" placeholder="Last Name">
+                                <input type="text" class="form-control" name="last_name" placeholder="Last Name" value="{{ last_name|default:'' }}">
                             </div>
 
                             <div class="form-group">
                                 <label>Address</label>
-                                <textarea class="form-control" name="address" placeholder="Address"></textarea>
+                                <textarea class="form-control" name="address" placeholder="Address">{{ address|default:'' }}</textarea>
                             </div>
-
-                            
-
-
                         </div>
                         <!-- /.card-body -->
 
                         <div class="card-footer">
-                        <button type="submit" class="btn btn-primary">Add Staff</button>
+                            <button type="submit" class="btn btn-primary">Add Staff</button>
                         </div>
                     </form>
-                    </div>
-                    <!-- /.card -->
-
                 </div>
+                <!-- /.card -->
             </div>
+        </div>
+    </div><!-- /.container-fluid -->
+</section>
 
-        </div><!-- /.container-fluid -->
-      </section>
+{% endblock main_content %}
 
-  {% endblock main_content %}
-
-    {% block custom_js %}
-    {% comment %} Checking if email and username already exists or not usin Ajax {% endcomment %}
-
+{% block custom_js %}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function(){
-            // keyup event will be triggered when user leaves keyboard
-            $("#id_email").keyup(function(){
+            function debounce(func, delay) {
+                let debounceTimer;
+                return function() {
+                    const context = this;
+                    const args = arguments;
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => func.apply(context, args), delay);
+                };
+            }
+
+            $("#id_email").keyup(debounce(function(){
                 var email = $(this).val();
-
-                if(email!=""){
+                if(email != ""){
                     $.ajax({
-                        url : '{% url 'check_email_exist' %}',
-                        type : 'POST',
-                        data : {email:email}
-                    })
-                    .done(function(response){
-                        //console.log(response);
-
-                        if(response == "True"){
+                        url: '{% url 'check_email_exist' %}',
+                        type: 'POST',
+                        data: {
+                            email: email,
+                            csrfmiddlewaretoken: '{{ csrf_token }}'
+                        },
+                        success: function(response){
                             $(".email_error").remove();
-                            $("<span class='email_error' style='color: red; padding: 5px; font-weight: bold;'> Email Not Available. </span>").insertAfter("#id_email")
+                            if(response == "True"){
+                                $("<span class='email_error' style='color: red; padding: 5px; font-weight: bold;'> Email Not Available. </span>").insertAfter("#id_email");
+                            } else {
+                                $("<span class='email_error' style='color: green; padding: 5px; font-weight: bold;'> Email Available. </span>").insertAfter("#id_email");
+                            }
                         }
-                        else{
-                            $(".email_error").remove();
-                            $("<span class='email_error' style='color: green; padding: 5px; font-weight: bold;'> Email Available. </span>").insertAfter("#id_email")
-                        }
-                    })
-
-                    .fail(function(){
-                        console.log("Failed");
-                    })
-                }
-                else{
+                    });
+                } else {
                     $(".email_error").remove();
                 }
-                
-            })
+            }, 500));
 
-            $("#id_username").keyup(function(){
+            $("#id_username").keyup(debounce(function(){
                 var username = $(this).val();
-                
-                if(username!=""){
+                if(username != ""){
                     $.ajax({
-                        url : '{% url 'check_username_exist' %}',
-                        type : 'POST',
-                        data : {username:username}
-                    })
-                    .done(function(response){
-                        //console.log(response);
-
-                        if(response == "True"){
+                        url: '{% url 'check_username_exist'%}',
+                        type: 'POST',
+                        data: {
+                            username: username,
+                            csrfmiddlewaretoken: '{{ csrf_token }}'
+                        },
+                        success: function(response){
                             $(".username_error").remove();
-                            $("<span class='username_error' style='color: red; padding: 5px; font-weight: bold;'> Username Not Available. </span>").insertAfter("#id_username")
+                            if(response == "True"){
+                                $("<span class='username_error' style='color: red; padding: 5px; font-weight: bold;'> Username Not Available. </span>").insertAfter("#id_username");
+                            } else {
+                                $("<span class='username_error' style='color: green; padding: 5px; font-weight: bold;'> Username Available. </span>").insertAfter("#id_username");
+                            }
                         }
-                        else{
-                            $(".username_error").remove();
-                            $("<span class='username_error' style='color: green; padding: 5px; font-weight: bold;'> Username Available. </span>").insertAfter("#id_username")
-                        }
-                    })
-
-                    .fail(function(){
-                        console.log("Failed");
-                    })
-                }
-                else{
+                    });
+                } else {
                     $(".username_error").remove();
                 }
-                
-            })
-        })
+            }, 500));
+        });
     </script>
-
-  {% endblock custom_js %}
+{% endblock custom_js %}
