@@ -5,6 +5,7 @@ from django.core import serializers
 from django.core.exceptions import ValidationError
 from django.core.files.storage import \
     FileSystemStorage  # To upload Profile Picture
+from django.core.files.storage import default_storage
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -584,66 +585,55 @@ def edit_student(request, student_id):
 def edit_student_save(request):
     if request.method != "POST":
         return HttpResponse("Invalid Method!")
+    
+    student_id = request.session.get('student_id')
+    if student_id is None:
+        return redirect('/manage_student')
+
+    form = EditStudentForm(request.POST, request.FILES)
+    if form.is_valid():
+        email = form.cleaned_data['email']
+        username = form.cleaned_data['username']
+        first_name = form.cleaned_data['first_name']
+        last_name = form.cleaned_data['last_name']
+        address = form.cleaned_data['address']
+        class_id = form.cleaned_data['class_id']
+        gender = form.cleaned_data['gender']
+        session_year_id = form.cleaned_data['session_year_id']
+
+        profile_pic = form.cleaned_data.get('profile_pic')
+
+        try:
+            # Update Custom User Model
+            user = CustomUser.objects.get(id=student_id)
+            user.first_name = first_name
+            user.last_name = last_name
+            user.email = email
+            user.username = username
+            user.save()
+
+            # Update Students Model
+            student_model = Students.objects.get(admin=student_id)
+            student_model.address = address
+            student_model.class_id = get_object_or_404(Classes, id=class_id)
+            student_model.session_year_id = get_object_or_404(SessionYearModel, id=session_year_id)
+            student_model.gender = gender
+
+            if profile_pic:
+                student_model.profile_pic = profile_pic
+
+            student_model.save()
+            
+            del request.session['student_id']
+
+            messages.success(request, "Student Updated Successfully!")
+            return redirect('manage_student')
+        except Exception as e:
+            messages.error(request, f"Failed to Update Student: {e}")
+            return redirect(f'/edit_student/{student_id}')
     else:
-        student_id = request.session.get('student_id')
-        if student_id == None:
-            return redirect('/manage_student')
-
-        form = EditStudentForm(request.POST, request.FILES)
-        if form.is_valid():
-            email = form.cleaned_data['email']
-            username = form.cleaned_data['username']
-            first_name = form.cleaned_data['first_name']
-            last_name = form.cleaned_data['last_name']
-            address = form.cleaned_data['address']
-            class_id = form.cleaned_data['class_id']
-            gender = form.cleaned_data['gender']
-            session_year_id = form.cleaned_data['session_year_id']
-
-            # Getting Profile Pic first
-            # First Check whether the file is selected or not
-            # Upload only if file is selected
-            if len(request.FILES) != 0:
-                profile_pic = request.FILES['profile_pic']
-                fs = FileSystemStorage()
-                filename = fs.save(profile_pic.name, profile_pic)
-                profile_pic_url = fs.url(filename)
-            else:
-                profile_pic_url = None
-
-            try:
-                # First Update into Custom User Model
-                user = CustomUser.objects.get(id=student_id)
-                user.first_name = first_name
-                user.last_name = last_name
-                user.email = email
-                user.username = username
-                user.save()
-
-                # Then Update Students Table
-                student_model = Students.objects.get(admin=student_id)
-                student_model.address = address
-
-                single_class = Classes.objects.get(id=class_id)
-                student_model.class_id = single_class
-
-                session_year_obj = SessionYearModel.objects.get(id=session_year_id)
-                student_model.session_year_id = session_year_obj
-
-                student_model.gender = gender
-                if profile_pic_url != None:
-                    student_model.profile_pic = profile_pic_url
-                student_model.save()
-                # Delete student_id SESSION after the data is updated
-                del request.session['student_id']
-
-                messages.success(request, "Student Updated Successfully!")
-                return redirect('/edit_student/'+student_id)
-            except:
-                messages.success(request, "Failed to Uupdate Student.")
-                return redirect('/edit_student/'+student_id)
-        else:
-            return redirect('/edit_student/'+student_id)
+        messages.error(request, "Invalid form data")
+        return redirect(f'/edit_student/{student_id}')
 
 
 def delete_student(request, student_id):

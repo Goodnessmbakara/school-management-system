@@ -43,7 +43,7 @@ class Students(models.Model):
     id = models.AutoField(primary_key=True)
     admin = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     gender = models.CharField(max_length=50, choices=GENDER_CHOICES)
-    profile_pic = models.FileField()
+    profile_pic = models.ImageField(upload_to='profile_pics/')
     address = models.TextField()
     class_id = models.ForeignKey('Classes', on_delete=models.DO_NOTHING, related_name = 'students', null = True, blank = True)
     sub_class_id = models.ForeignKey('SubClasses', on_delete=models.DO_NOTHING, related_name = 'subclass_students', null = True, blank = True)
