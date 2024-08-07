@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.forms import Form
-from student_management_app.models import (Classes, Grade, SessionYearModel,
+from student_management_app.models import (Classes, Grade, SessionYearModel, Subject, ClassSubject,
                                            Students, SubClasses)
 
 CustomUser = get_user_model()
@@ -21,6 +21,7 @@ class GradeForm(forms.ModelForm):
         if exam and exam < 0:
             raise forms.ValidationError("Exam scores cannot be negative.")
         return cleaned_data
+    
 class SessionYearForm(forms.ModelForm):
     class Meta:
         model = SessionYearModel
@@ -68,6 +69,21 @@ class SubClassForm(forms.ModelForm):
     def set_teachers(self, queryset):
         self.fields['subclass_teacher'].queryset = queryset
 
+class SubjectForm(forms.ModelForm):
+    class_level = forms.ChoiceField(choices=Classes.LEVEL_CHOICES)
+    
+    class Meta:
+        model = Subject
+        fields = ['subject_name', 'class_level']
+
+class ClassSubjectForm(forms.ModelForm):
+    class_id = forms.ModelChoiceField(queryset=Classes.objects.none())
+    subject_teacher = forms.ModelChoiceField(queryset=CustomUser.objects.filter(user_type='2'))
+
+    class Meta:
+        model = ClassSubject
+        fields = ['class_id', 'subject_teacher']
+    
 
 class DateInput(forms.DateInput):
     input_type = "date"

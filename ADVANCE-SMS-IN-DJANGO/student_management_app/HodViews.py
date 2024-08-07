@@ -14,31 +14,32 @@ from django.urls import reverse
 from django.views.decorators.cache import cache_control
 from django.views.decorators.csrf import csrf_exempt
 from student_management_app.models import (Attendance, AttendanceReport,
-                                           Classes, CustomUser, FeedBackStaffs,
-                                           FeedBackStudent, LeaveReportStaff,
+                                           Classes, ClassSubject, CustomUser,
+                                           FeedBackStaffs, FeedBackStudent,
+                                           LeaveReportStaff,
                                            LeaveReportStudent,
                                            SessionYearModel, Staffs, Students,
-                                           SubClasses, Subject)
+                                           SubClasses, SubclassSubject,
+                                           Subject)
 
 from .forms import (AddStudentForm, ClassForm, EditStudentForm, GradeForm,
-                    SessionYearForm, SubClassForm)
+                    SessionYearForm, SubClassForm, SubjectForm, ClassSubjectForm)
 
 
 def admin_home(request):
-    all_student_count = Students.objects.all().count()
-    subject_count = Subject.objects.all().count()
-    class_count = Classes.objects.all().count()
-    staff_count = Staffs.objects.all().count()
+    all_student_count = Students.objects.count()
+    subject_count = Subject.objects.count()
+    class_count = Classes.objects.count()
+    staff_count = Staffs.objects.count()
 
     # Aggregate data for each class
     classes_all = Classes.objects.all()
     class_name_list = []
     subject_count_list = []
     student_count_list_in_class = []
-    student_count_list_in_subject = []
 
     for single_class in classes_all:
-        subjects = Subject.objects.filter(class_id=single_class.id).count()
+        subjects = ClassSubject.objects.filter(class_obj_id=single_class.id).count()
         students = Students.objects.filter(class_id=single_class.id).count()
         class_name_list.append(single_class.class_name)
         subject_count_list.append(subjects)
@@ -46,47 +47,46 @@ def admin_home(request):
 
     # Aggregate data for each subject
     subject_list = []
-    subjects = Subject.objects.all()
+    student_count_list_in_subject = []
+
+    subjects = ClassSubject.objects.all()
     for subject in subjects:
         if subject.class_id:
-            related_class = get_object_or_404(Classes, id=subject.class_id.id)
-            student_count = Students.objects.filter(class_id=related_class.id).count()
+            student_count = Student.objects.filter(class_id=subject.class_id.id).count()
             subject_list.append(subject.subject_name)
             student_count_list_in_subject.append(student_count)
         elif subject.subclass_id:
-            related_subclass = get_object_or_404(SubClasses, id=subject.subclass_id.id)
-            related_class = get_object_or_404(Classes, id=related_subclass.parent_class.id)
-            student_count = Students.objects.filter(class_id=related_class.id).count()
+            student_count = Student.objects.filter(class_id=subject.subclass_id.parent_class.id).count()
             subject_list.append(subject.subject_name + " (Subclass)")
             student_count_list_in_subject.append(student_count)
         else:
             subject_list.append(subject.subject_name + " (Unassigned)")
             student_count_list_in_subject.append(0)
 
-    # Include data collection for staff and students
+    # Data collection for staff
     staff_attendance_present_list = []
     staff_attendance_leave_list = []
     staff_name_list = []
 
     staffs = Staffs.objects.all()
     for staff in staffs:
-        subject_ids = Subject.objects.filter(staff_id=staff.admin.id).values_list('id', flat=True)
+        subject_ids = ClassSubject.objects.filter(subject_teacher=staff.admin).values_list('id', flat=True)
         attendance = Attendance.objects.filter(subject_id__in=subject_ids).count()
-        leaves = LeaveReportStaff.objects.filter(staff_id=staff.admin.id, leave_status=1).count()
+        leaves = LeaveReportStaff.objects.filter(staff_id=staff, leave_status=True).count()
         staff_attendance_present_list.append(attendance)
         staff_attendance_leave_list.append(leaves)
         staff_name_list.append(staff.admin.first_name)
 
-    # Similarly, for students
+    # Data collection for students
     student_attendance_present_list = []
     student_attendance_leave_list = []
     student_name_list = []
 
     students = Students.objects.all()
     for student in students:
-        attendance = AttendanceReport.objects.filter(student_id=student.id, status=True).count()
-        absent = AttendanceReport.objects.filter(student_id=student.id, status=False).count()
-        leaves = LeaveReportStudent.objects.filter(student_id=student.id, leave_status=1).count()
+        attendance = AttendanceReport.objects.filter(student_id=student, status=True).count()
+        absent = AttendanceReport.objects.filter(student_id=student, status=False).count()
+        leaves = LeaveReportStudent.objects.filter(student_id=student, leave_status=True).count()
         student_attendance_present_list.append(attendance)
         student_attendance_leave_list.append(leaves + absent)
         student_name_list.append(student.admin.first_name)
@@ -110,7 +110,6 @@ def admin_home(request):
         "student_name_list": student_name_list,
     }
     return render(request, "hod_template/home_content.html", context)
-
 
 def add_staff(request):
     if request.method != "POST":
@@ -549,6 +548,9 @@ def get_classes_or_subclasses(request):
         subclasses = SubClasses.objects.filter(parent_class__level=level_id)
         return render(request, 'hod_template/subclass_options.html', {'subclasses': subclasses})
 
+def check_subclass_existence(request, class_id):
+    has_subclasses = SubClasses.objects.filter(parent_class_id=class_id).exists()
+    return JsonResponse({'has_subclasses': has_subclasses})
 
 def manage_student(request):
     students = Students.objects.all()
@@ -648,45 +650,28 @@ def delete_student(request, student_id):
 
 
 def add_subject(request):
-    classes = Classes.objects.all()
-    staffs = CustomUser.objects.filter(user_type='2')
+    if request.method == "POST":
+        subject_form = SubjectForm(request.POST)
+        class_subject_form = ClassSubjectForm(request.POST)
+
+        if subject_form.is_valid() and class_subject_form.is_valid():
+            subject = subject_form.save()
+            class_subject = class_subject_form.save(commit=False)
+            class_subject.subject = subject
+            class_subject.save()
+            messages.success(request, "Subject added successfully.")
+            return redirect('manage_subject')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        subject_form = SubjectForm()
+        class_subject_form = ClassSubjectForm()
+
     context = {
-        "classes": classes,
-        "staffs": staffs
+        "subject_form": subject_form,
+        "class_subject_form": class_subject_form,
     }
     return render(request, 'hod_template/add_subject_template.html', context)
-
-
-
-
-def add_subject_save(request):
-    if request.method != "POST":
-        messages.error(request, "Method Not Allowed!")
-        return redirect('add_subject')
-
-    subject_name = request.POST.get('subject')
-    class_id = request.POST.get('class')
-    single_class = get_object_or_404(Classes, pk=class_id)
-    subclass_id = request.POST.get('subclass', None)
-    staff_id = request.POST.get('staff')
-    staff = get_object_or_404(CustomUser, pk=staff_id)
-
-    # Check for Nursery level and subclass assignment attempt
-    if single_class.level == 'Nursery' and subclass_id:
-        messages.error(request, "Nursery classes cannot have subclasses.")
-        return redirect('add_subject')
-
-    # Create the subject for either class or subclass
-    if subclass_id:
-        subclass = get_object_or_404(SubClasses, pk=subclass_id)
-        subject = Subject(subject_name=subject_name, subclass_id=subclass, staff_id=staff)
-    else:
-        subject = Subject(subject_name=subject_name, class_id=single_class, staff_id=staff)
-
-    subject.save()
-    messages.success(request, "Subject added successfully.")
-    return redirect('add_subject')  # Redirect after successful save
-
 
 def manage_subject(request):
     search_query = request.GET.get('search', '')
@@ -703,47 +688,34 @@ def manage_subject(request):
 
 def edit_subject(request, subject_id):
     subject = Subject.objects.get(id=subject_id)
-    classes = Classes.objects.all()
-    staffs = CustomUser.objects.filter(user_type='2')
+    levels = Classes.LEVEL_CHOICES
     context = {
         "subject": subject,
-        "Classes": classes,
-        "staffs": staffs,
-        "id": subject_id
+        "levels": levels,
     }
     return render(request, 'hod_template/edit_subject_template.html', context)
 
-
 def edit_subject_save(request):
     if request.method != "POST":
-        HttpResponse("Invalid Method.")
+        return HttpResponse("Invalid Method.")
     else:
         subject_id = request.POST.get('subject_id')
-        subject_name = request.POST.get('subject')
-        class_id = request.POST.get('class')
-        staff_id = request.POST.get('staff')
+        subject_name = request.POST.get('subject_name')
+        subject_level = request.POST.get('subject_level')
 
         try:
             subject = Subject.objects.get(id=subject_id)
             subject.subject_name = subject_name
-
-            single_class = Classes.objects.get(id=class_id)
-            subject.class_id = single_class
-
-            staff = CustomUser.objects.get(id=staff_id)
-            subject.staff_id = staff
+            subject.subject_level = subject_level
 
             subject.save()
 
             messages.success(request, "Subject Updated Successfully.")
-            # return redirect('/edit_subject/'+subject_id)
-            return HttpResponseRedirect(reverse("edit_subject", kwargs={"subject_id":subject_id}))
+            return HttpResponseRedirect(reverse("manage_subject"))
 
-        except:
-            messages.error(request, "Failed to Update Subject.")
-            return HttpResponseRedirect(reverse("edit_subject", kwargs={"subject_id":subject_id}))
-            # return redirect('/edit_subject/'+subject_id)
-
+        except Exception as e:
+            messages.error(request, f"Failed to Update Subject. Error: {str(e)}")
+            return HttpResponseRedirect(reverse("manage_subject", kwargs={"subject_id": subject_id}))
 
 
 def delete_subject(request, subject_id):
@@ -763,12 +735,24 @@ def get_classes_for_level(request):
     html = render_to_string('hod_template/class_options.html', context)
     return HttpResponse(html)
 
+def get_classes_for_levels(request):
+    level = request.GET.get('level')
+    classes = Classes.objects.filter(level=level)
+    classes_options = ''.join([f'<option value="{cls.id}">{cls.name}</option>' for cls in classes])
+    return JsonResponse({'classes_options': classes_options})
+
 def get_subclasses_for_class(request):
     class_id = request.GET.get('class_id')
     subclasses = SubClasses.objects.filter(parent_class_id=class_id).order_by('subclass_name')
     context = {'subclasses': subclasses}
     html = render_to_string('hod_template/subclass_options.html', context)
     return HttpResponse(html)
+
+def get_subclasses_for_classs(request):
+    class_id = request.GET.get('class_id')
+    subclasses = SubClasses.objects.filter(class_obj_id=class_id)
+    subclasses_options = ''.join([f'<option value="{subcls.id}">{subcls.name}</option>' for subcls in subclasses])
+    return JsonResponse({'subclasses_options': subclasses_options})
 
 def get_subclasses(request, class_id):
     subclasses = SubClasses.objects.filter(parent_class_id=class_id).values('id', 'subclass_name', 'subclass_code')

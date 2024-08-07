@@ -9,12 +9,11 @@
 {% load static %}
 
 <section class="content">
-        <div class="container-fluid">
-
-            <div class="row">
-                <div class="col-md-12">
-                    <!-- general form elements -->
-                    <div class="card card-primary">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <!-- general form elements -->
+                <div class="card card-primary">
                     <div class="card-header">
                         <h3 class="card-title">Edit Subject</h3>
                     </div>
@@ -23,74 +22,59 @@
                     <form role="form" method="POST" action="{% url 'edit_subject_save' %}">
                         {% csrf_token %}
 
-
-                                {% comment %} Display Messages {% endcomment %}
-                                {% if messages %}
-                                <div class="form-group">
-                                <div class="col-12">
-                                    {% for message in messages %}
-                                    {% if message.tags == "error" %}
-                                        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-top: 10px;">
+                        {% comment %} Display Messages {% endcomment %}
+                        {% if messages %}
+                        <div class="form-group">
+                            <div class="col-12">
+                                {% for message in messages %}
+                                {% if message.tags == "error" %}
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-top: 10px;">
                                         {{ message }}
                                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                             <span aria-hidden="true">&times;</span>
                                         </button>
-                                        </div>
-                                    {% elif message.tags == "success" %}
-                                        <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin-top: 10px;">
+                                    </div>
+                                {% elif message.tags == "success" %}
+                                    <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin-top: 10px;">
                                         {{ message }}
                                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                             <span aria-hidden="true">&times;</span>
                                         </button>
-                                        </div>
-                                    {% endif %}
-                                    {% endfor %}
-                                </div>
-                                </div>
+                                    </div>
                                 {% endif %}
-
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
 
                         <div class="card-body">
                             <div class="form-group">
-                                <label>Subject Name </label>
-                                <input type="text" class="form-control" name="subject" value="{{ subject.subject_name }}">
+                                <label>Subject Name</label>
+                                <input type="text" class="form-control" name="subject_name" value="{{ subject.subject_name }}">
                             </div>
 
                             <div class="form-group">
-                                <label>Class </label>
-                                <select class="form-control" name="class">
-                                    {% for single_class in classes %}
-                                        <option value="{{ single_class.id }}" {% if single_class.id == subject.single_class_id.id %} selected {% endif %}>{{ single_class.class_name }}</option>
+                                <label>Subject Level</label>
+                                <select class="form-control" name="subject_level">
+                                    {% for level in levels %}
+                                        <option value="{{ level.0 }}" {% if level.0 == subject.subject_level %} selected {% endif %}>{{ level.1 }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
 
-                            <div class="form-group">
-                                <label>Staff </label>
-                                <select class="form-control" name="staff">
-                                    {% for staff in staffs %}
-                                        <option value="{{ staff.id }}" {% if staff.id == subject.staff_id.id %} selected {% endif %}>{{ staff.first_name }} {{ staff.last_name }}</option>
-                                    {% endfor %}
-                                </select>
-
-                                <input type="hidden" name="subject_id" value="{{ subject.id }}" />
-                            </div>
-
+                            <input type="hidden" name="subject_id" value="{{ subject.id }}" />
                         </div>
                         <!-- /.card-body -->
 
                         <div class="card-footer">
-
-                        <button type="submit" class="btn btn-primary">Update Subject</button>
+                            <button type="submit" class="btn btn-primary">Update Subject</button>
                         </div>
                     </form>
-                    </div>
-                    <!-- /.card -->
-
                 </div>
+                <!-- /.card -->
             </div>
+        </div>
+    </div><!-- /.container-fluid -->
+</section>
 
-        </div><!-- /.container-fluid -->
-      </section>
-
-  {% endblock main_content %}
+{% endblock main_content %}

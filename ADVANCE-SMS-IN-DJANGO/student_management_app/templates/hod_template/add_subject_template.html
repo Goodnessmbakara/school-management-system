@@ -7,96 +7,95 @@
 
 <section class="content">
     <div class="container-fluid">
-        <a class="btn btn-primary" href="{% url 'add_subject' %}" role="button">+ Add Subject</a>
-        <br/><br/>
-        {% if messages %}
-            <div class="form-group">
-                <div class="col-12">
-                    {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="margin-top: 10px;">
-                            {{ message }}
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h3 class="card-title">Add New Subject</h3>
+                    </div>
+                    <form role="form" method="POST" action="{% url 'add_subject' %}">
+                        {% csrf_token %}
+                        <div class="card-body">
+                            {{ subject_form.as_p }}
+                            {{ class_subject_form.as_p }}
                         </div>
-                    {% endfor %}
+                        <div class="card-footer">
+                            <button type="submit" class="btn btn-primary">Add Subject</button>
+                        </div>
+                    </form>
                 </div>
             </div>
-        {% endif %}
-        <div class="card card-primary">
-            <div class="card-header">
-                <h3 class="card-title">Add Subject</h3>
-            </div>
-            <form method="POST" action="{% url 'add_subject_save' %}">
-                {% csrf_token %}
-                <div class="card-body">
-                    <div class="form-group">
-                        <label for="subjectName">Subject Name</label>
-                        <input type="text" class="form-control" id="subjectName" name="subject" placeholder="Enter Subject Name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="classSelect">Class</label>
-                        <select class="form-control" id="classSelect" name="class" required>
-                            {% for single_class in classes %}
-                                <option value="{{ single_class.id }}" data-level="{{ single_class.level }}">{{ single_class.class_name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group" id="subclass-select-wrapper" style="display: none;">
-                        <label for="subclassSelect">Subclass</label>
-                        <select class="form-control" id="subclassSelect" name="subclass">
-                            <!-- Subclass options will be loaded here based on the selected class -->
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="staffSelect">Staff</label>
-                        <select class="form-control" id="staffSelect" name="staff" required>
-                            {% for staff in staffs %}
-                                <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="card-footer">
-                    <button type="submit" class="btn btn-primary">Add Subject</button>
-                </div>
-            </form>
         </div>
     </div>
 </section>
-{% endblock main_content %}
 
-{% block custom_js %}
+<script src="{% static 'js/jquery.min.js' %}"></script>
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    const classSelect = document.querySelector('#classSelect');
-    const subclassSelectWrapper = document.querySelector('#subclass-select-wrapper');
-    const subclassSelect = document.querySelector('#subclassSelect');
-
-    classSelect.addEventListener('change', function() {
-        const classId = this.value;
-        const classLevel = this.options[this.selectedIndex].getAttribute('data-level');
-        subclassSelect.innerHTML = ''; // Clear current options
-        subclassSelectWrapper.style.display = (classLevel === 'Nursery') ? 'none' : 'block'; // Display control based on class level
-
-        if (classLevel !== 'Nursery') {
-            fetch(`/get-subclasses/${classId}/`)
-            .then(response => response.json())
-            .then(data => {
-                data.forEach(subclass => {
-                    let option = new Option(`${subclass.subclass_name} (${subclass.subclass_code})`, subclass.id);
-                    subclassSelect.appendChild(option);
+    $(document).ready(function() {
+        $('#id_class_level').change(function() {
+            var level = $(this).val();
+            if (level) {
+                $.ajax({
+                    url: '{% url "get-classes-for-level" %}',
+                    data: { level: level },
+                    success: function(data) {
+                        var classSelect = $('#id_class_id');
+                        classSelect.empty();
+                        classSelect.append('<option value="">Select Class</option>');
+                        $.each(data.classes_options, function(index, option) {
+                            classSelect.append('<option value="' + option.id + '">' + option.name + '</option>');
+                        });
+                        $('#classSelectGroup').show();
+                        $('#subclassSelectGroup').hide();
+                        $('#subjectTeacherGroup').hide();
+                    }
                 });
-                if (!data.length) {
-                    subclassSelectWrapper.style.display = 'none';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                subclassSelectWrapper.style.display = 'none';
-            });
-        }
+            } else {
+                $('#classSelectGroup').hide();
+                $('#subclassSelectGroup').hide();
+                $('#subjectTeacherGroup').hide();
+            }
+        });
+
+        $('#id_class_id').change(function() {
+            var classId = $(this).val();
+            if (classId) {
+                $.ajax({
+                    url: '{% url "get-subclasses-for-class" %}',
+                    data: { class_id: classId },
+                    success: function(data) {
+                        var subclassSelect = $('#id_subclass_id');
+                        subclassSelect.empty();
+                        subclassSelect.append('<option value="">Select Subclass</option>');
+                        $.each(data.subclasses_options, function(index, option) {
+                            subclassSelect.append('<option value="' + option.id + '">' + option.name + '</option>');
+                        });
+                        if (data.subclasses_options.length > 0) {
+                            $('#subclassSelectGroup').show();
+                            $('#subjectTeacherGroup').hide();
+                        } else {
+                            $('#subclassSelectGroup').hide();
+                            $('#subjectTeacherGroup').show();
+                        }
+                    }
+                });
+
+                $.ajax({
+                    url: '{% url "check-subclass-existence" classId %}'.replace('classId', classId),
+                    success: function(data) {
+                        if (data.has_subclasses) {
+                            $('#subjectTeacherGroup').hide();
+                        } else {
+                            $('#subjectTeacherGroup').show();
+                        }
+                    }
+                });
+            } else {
+                $('#subclassSelectGroup').hide();
+                $('#subjectTeacherGroup').hide();
+            }
+        });
     });
-});
 </script>
-{% endblock custom_js %}
+
+{% endblock main_content %}

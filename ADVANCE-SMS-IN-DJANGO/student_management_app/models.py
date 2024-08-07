@@ -1,14 +1,14 @@
-from django.db import models
+import logging
+
+from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from django.utils.timezone import now
 from django.core.exceptions import ValidationError
-from django.utils import timezone
+from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.contrib.auth.models import AbstractUser
-
-import logging
+from django.utils import timezone
+from django.utils.timezone import now
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +58,7 @@ class Classes(models.Model):
         ('Nursery', 'Nursery'),
         ('Primary', 'Primary'),
         ('Junior', 'Junior'),
+        ('Senior', 'Senior'),
     )
     id = models.AutoField(primary_key=True)
     class_name = models.CharField(max_length=255)
@@ -98,13 +99,31 @@ class SessionYearModel(models.Model):
         return f"{start_year}/{end_year}"
 
 class Subject(models.Model):
-    subject_name = models.CharField(max_length=255)
-    class_id = models.ForeignKey(Classes, related_name='subjects', on_delete=models.CASCADE, null=True, blank=True)
-    subclass_id = models.ForeignKey(SubClasses, related_name='subjects', on_delete=models.CASCADE, null=True, blank=True)
-    staff_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True, null=True, blank = True)
-    updated_at = models.DateTimeField(auto_now=True, null=True, blank = True)
-    session_year_id = models.ForeignKey("SessionYearModel", on_delete=models.CASCADE, blank=True, null=True)
+    subject_name = models.CharField(max_length=255, null = True, blank=True)
+    subject_level = models.CharField(max_length=255, null = True, blank=True)
+
+    def __str__(self):
+        return self.subject_name
+
+class ClassSubject(models.Model):
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='class_subjects')
+    class_obj = models.ForeignKey(Classes, on_delete=models.CASCADE, related_name='class_subjects')
+    subject_teacher = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.subject.subject_name} - {self.class_obj.class_name}"
+
+class SubclassSubject(models.Model):
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='subclass_subjects')
+    subclass = models.ForeignKey(SubClasses, on_delete=models.CASCADE, related_name='subclass_subjects')
+    subject_teacher = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.subject.subject_name} - {self.subclass.subclass_name}"
 
 
 class Grade(models.Model):
