@@ -17,7 +17,7 @@ class CustomUser(AbstractUser):
     user_type_data = ((1, "HOD"), (2, "Staff"), (3, "Student"))
     user_type = models.CharField(default=1, choices=user_type_data, max_length=10)
     def __str__(self):
-        return self.id
+        return self.username
 
 class AdminHOD(models.Model):
     id = models.AutoField(primary_key=True)
@@ -26,6 +26,8 @@ class AdminHOD(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     objects = models.Manager()
 
+    def str(self):
+        return admin.username
 class Staffs(models.Model):
     id = models.AutoField(primary_key=True)
     admin = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
@@ -34,6 +36,9 @@ class Staffs(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     session_year_id = models.ForeignKey("SessionYearModel", on_delete=models.CASCADE, blank=True, null=True)
     objects = models.Manager()
+    
+    def str(self):
+        return admin.username
 
 class Students(models.Model):
     GENDER_CHOICES =(
@@ -108,7 +113,7 @@ class Subject(models.Model):
 class ClassSubject(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='class_subjects')
     class_obj = models.ForeignKey(Classes, on_delete=models.CASCADE, related_name='class_subjects')
-    subject_teacher = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
+    subject_teacher = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True,related_name='teaching_subjects')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -195,7 +200,8 @@ class StudentResult(models.Model):
 class Attendance(models.Model):
     # Subject Attendance
     id = models.AutoField(primary_key=True)
-    subject_id = models.ForeignKey(Subject, on_delete=models.DO_NOTHING)
+    class_subject = models.ForeignKey(ClassSubject, on_delete=models.CASCADE, related_name='attendances', null=True, blank=True)
+    subclass_subject = models.ForeignKey(SubclassSubject, on_delete=models.CASCADE, related_name='attendances', null=True, blank=True)
     attendance_date = models.DateField()
     session_year_id = models.ForeignKey(SessionYearModel, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -216,7 +222,7 @@ class AttendanceReport(models.Model):
 
 class LeaveReportStudent(models.Model):
     id = models.AutoField(primary_key=True)
-    student_id = models.ForeignKey(Students, on_delete=models.CASCADE)
+    student_id = models.ForeignKey(Students, on_delete=models.CASCADE, related_name='leave_reports')
     leave_date = models.CharField(max_length=255)
     leave_message = models.TextField()
     leave_status = models.IntegerField(default=0)
@@ -227,7 +233,7 @@ class LeaveReportStudent(models.Model):
 
 class LeaveReportStaff(models.Model):
     id = models.AutoField(primary_key=True)
-    staff_id = models.ForeignKey(Staffs, on_delete=models.CASCADE)
+    staff_id = models.ForeignKey(Staffs, on_delete=models.CASCADE, related_name='leave_reports')
     leave_date = models.CharField(max_length=255)
     leave_message = models.TextField()
     leave_status = models.IntegerField(default=0)
@@ -307,3 +313,17 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
             instance.staffs.save()
         elif instance.user_type == 3:
             instance.students.save()
+
+@receiver(post_save, sender=SubClasses)
+def assign_subjects_to_new_subclass(sender, instance, created, **kwargs):
+    if created:
+        # Get all ClassSubjects for the parent class
+        parent_class_subjects = ClassSubject.objects.filter(class_obj=instance.parent_class)
+        
+        # Assign each subject to the new subclass
+        for class_subject in parent_class_subjects:
+            SubclassSubject.objects.create(
+                subject=class_subject.subject,
+                subclass=instance,
+                subject_teacher=class_subject.subject_teacher
+            )

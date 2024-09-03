@@ -1,8 +1,7 @@
 
-from django.urls import path, include
-from . import views
-from .import HodViews, StaffViews, StudentViews, WebsiteViews
+from django.urls import include, path
 
+from . import HodViews, StaffViews, StudentViews, WebsiteViews, views
 
 urlpatterns = [
     path('', WebsiteViews.home, name="home"),
@@ -36,6 +35,8 @@ urlpatterns = [
     path('edit_subject/<subject_id>/', HodViews.edit_subject, name="edit_subject"),
     path('edit_subject_save/', HodViews.edit_subject_save, name="edit_subject_save"),
     path('delete_subject/<subject_id>/', HodViews.delete_subject, name="delete_subject"),
+    path('manage_this_subject/<int:subject_id>/', HodViews.manage_this_subject, name='manage_this_subject'),
+    path('delete_subclass_subject/<int:subclass_subject_id>/', HodViews.delete_subclass_subject, name='delete_subclass_subject'),
     path('check_email_exist/', HodViews.check_email_exist, name="check_email_exist"),
     path('check_username_exist/', HodViews.check_username_exist, name="check_username_exist"),
     path('student_feedback_message/', HodViews.student_feedback_message, name="student_feedback_message"),
@@ -54,7 +55,7 @@ urlpatterns = [
     path('admin_profile/', HodViews.admin_profile, name="admin_profile"),
     path('admin_profile_update/', HodViews.admin_profile_update, name="admin_profile_update"),
     #URLS for for classes management
-    #path('get-classes-for-level/', HodViews.get_classes_for_level, name='get-classes-for-level'),
+    path('get_classes_for_level/', HodViews.get_classes_for_level, name='get_classes_for_level'),
     #path('get-subclasses-for-class/', HodViews.get_subclasses_for_class, name='get-subclasses-for-class'),
     path('add_class/', HodViews.add_class, name="add_class"),
     path('add_class_save/', HodViews.add_class_save, name="add_class_save"),

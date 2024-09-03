@@ -7,6 +7,7 @@ from django.core.files.storage import \
     FileSystemStorage  # To upload Profile Picture
 from django.core.files.storage import default_storage
 from django.db import transaction
+from django.db.models import Count, Prefetch, Q, F
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -22,8 +23,10 @@ from student_management_app.models import (Attendance, AttendanceReport,
                                            SubClasses, SubclassSubject,
                                            Subject)
 
-from .forms import (AddStudentForm, ClassForm, EditStudentForm, GradeForm,
-                    SessionYearForm, SubClassForm, SubjectForm, ClassSubjectForm)
+from .forms import (AddStudentForm, AddSubjectForm, ClassForm,
+                    ClassSubjectForm, EditStudentForm, EditSubclassSubjectForm,
+                    GradeForm, SessionYearForm, SubClassForm, SubjectForm)
+from .models import SubclassSubject, Subject
 
 
 def admin_home(request):
@@ -32,84 +35,49 @@ def admin_home(request):
     class_count = Classes.objects.count()
     staff_count = Staffs.objects.count()
 
-    # Aggregate data for each class
-    classes_all = Classes.objects.all()
-    class_name_list = []
-    subject_count_list = []
-    student_count_list_in_class = []
+    # Optimize the data fetching for classes and subjects
+    classes_all = Classes.objects.annotate(
+        subjects_count=Count('class_subjects'),  # Ensure that 'class_subjects' is the correct related_name
+        students_count=Count('students')  # Ensure that 'students' is the correct related_name
+    )
 
-    for single_class in classes_all:
-        subjects = ClassSubject.objects.filter(class_obj_id=single_class.id).count()
-        students = Students.objects.filter(class_id=single_class.id).count()
-        class_name_list.append(single_class.class_name)
-        subject_count_list.append(subjects)
-        student_count_list_in_class.append(students)
+    class_data = [{
+        'name': cls.class_name,
+        'subjects_count': cls.subjects_count,
+        'students_count': cls.students_count
+    } for cls in classes_all]
 
-    # Aggregate data for each subject
-    subject_list = []
-    student_count_list_in_subject = []
+    # Fetching subjects and students related to them
+    subjects_all = Subject.objects.annotate(
+        student_count=Count('class_subjects__class_obj__students')
+    ).prefetch_related('class_subjects')
 
-    subjects = ClassSubject.objects.all()
-    for subject in subjects:
-        if subject.class_id:
-            student_count = Student.objects.filter(class_id=subject.class_id.id).count()
-            subject_list.append(subject.subject_name)
-            student_count_list_in_subject.append(student_count)
-        elif subject.subclass_id:
-            student_count = Student.objects.filter(class_id=subject.subclass_id.parent_class.id).count()
-            subject_list.append(subject.subject_name + " (Subclass)")
-            student_count_list_in_subject.append(student_count)
-        else:
-            subject_list.append(subject.subject_name + " (Unassigned)")
-            student_count_list_in_subject.append(0)
+    subject_data = [{
+        'name': subject.subject_name,
+        'student_count': subject.student_count
+    } for subject in subjects_all]
 
-    # Data collection for staff
-    staff_attendance_present_list = []
-    staff_attendance_leave_list = []
-    staff_name_list = []
+    staff_data = Staffs.objects.annotate(
+    attendance_count=Count('admin__teaching_subjects__attendances', distinct=True),  # Assuming attendances are related directly to ClassSubject
+    leaves_count=Count('leave_reports', distinct=True)
+).annotate(
+    total_attendance=F('attendance_count')  # Using F to reference the annotated count
+).values(
+    'admin__first_name', 'admin__last_name', 'total_attendance', 'leaves_count'
+)
 
-    staffs = Staffs.objects.all()
-    for staff in staffs:
-        subject_ids = ClassSubject.objects.filter(subject_teacher=staff.admin).values_list('id', flat=True)
-        attendance = Attendance.objects.filter(subject_id__in=subject_ids).count()
-        leaves = LeaveReportStaff.objects.filter(staff_id=staff, leave_status=True).count()
-        staff_attendance_present_list.append(attendance)
-        staff_attendance_leave_list.append(leaves)
-        staff_name_list.append(staff.admin.first_name)
-
-    # Data collection for students
-    student_attendance_present_list = []
-    student_attendance_leave_list = []
-    student_name_list = []
-
-    students = Students.objects.all()
-    for student in students:
-        attendance = AttendanceReport.objects.filter(student_id=student, status=True).count()
-        absent = AttendanceReport.objects.filter(student_id=student, status=False).count()
-        leaves = LeaveReportStudent.objects.filter(student_id=student, leave_status=True).count()
-        student_attendance_present_list.append(attendance)
-        student_attendance_leave_list.append(leaves + absent)
-        student_name_list.append(student.admin.first_name)
-
-    # Context for rendering
+    # Handling context for rendering
     context = {
         "all_student_count": all_student_count,
         "subject_count": subject_count,
         "class_count": class_count,
         "staff_count": staff_count,
-        "class_name_list": class_name_list,
-        "subject_count_list": subject_count_list,
-        "student_count_list_in_class": student_count_list_in_class,
-        "subject_list": subject_list,
-        "student_count_list_in_subject": student_count_list_in_subject,
-        "staff_attendance_present_list": staff_attendance_present_list,
-        "staff_attendance_leave_list": staff_attendance_leave_list,
-        "staff_name_list": staff_name_list,
-        "student_attendance_present_list": student_attendance_present_list,
-        "student_attendance_leave_list": student_attendance_leave_list,
-        "student_name_list": student_name_list,
+        "class_data": class_data,
+        "subject_data": subject_data,
+        "staff_data": list(staff_data),
     }
     return render(request, "hod_template/home_content.html", context)
+
 
 def add_staff(request):
     if request.method != "POST":
@@ -374,6 +342,7 @@ def delete_subclass(request, subclass_id):
     except  Exception as e:
         messages.error(request, f"Failed to Delete SubClass. Because, {e}")
         return redirect('manage_subclass', class_id=parent_class_id)
+    
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def manage_subclass(request, class_id):
@@ -649,36 +618,89 @@ def delete_student(request, student_id):
         return redirect('manage_student')
 
 
-def add_subject(request):
-    if request.method == "POST":
-        subject_form = SubjectForm(request.POST)
-        class_subject_form = ClassSubjectForm(request.POST)
+def delete_subclass_subject(request, subclass_subject_id):
+    subclass_subject = get_object_or_404(SubclassSubject, id=subclass_subject_id)
+    subclass_subject.delete()
+    messages.success(request, "Subclass subject deleted successfully.")
+    return redirect('manage_this_subject', subject_id=subclass_subject.subject.id)
 
-        if subject_form.is_valid() and class_subject_form.is_valid():
-            subject = subject_form.save()
-            class_subject = class_subject_form.save(commit=False)
-            class_subject.subject = subject
-            class_subject.save()
-            messages.success(request, "Subject added successfully.")
-            return redirect('manage_subject')
-        else:
-            messages.error(request, "Please correct the errors below.")
+def manage_this_subject(request, subject_id):
+    subject = get_object_or_404(Subject, id=subject_id)
+    
+    # Retrieve all subclasses related to this subject
+    subclass_subjects = SubclassSubject.objects.filter(subject=subject)
+    
+    if subject.subject_level == 'Nursery':
+        subclass_subjects = ClassSubject.objects.filter(subject=subject)
+    
+
+    if request.method == 'POST':
+        form = EditSubclassSubjectForm(request.POST)
+        if form.is_valid():
+            subclass_subject_id = form.cleaned_data['subclass_subject_id']
+            subject_teacher = form.cleaned_data['subject_teacher']
+            
+            
+            # Update the SubclassSubject
+            subclass_subject = SubclassSubject.objects.get(id=subclass_subject_id)
+            if subject.subject_level == 'Nursery':
+                subclass_subject = ClassSubject.objects.get(id=subclass_subject_id)
+            subclass_subject.subject_teacher = subject_teacher.admin
+            subclass_subject.save()
+            
+            messages.success(request, 'Subject teacher updated successfully.')
+            return redirect('manage_this_subject', subject_id=subject_id)
     else:
-        subject_form = SubjectForm()
-        class_subject_form = ClassSubjectForm()
+        form = EditSubclassSubjectForm()
 
     context = {
-        "subject_form": subject_form,
-        "class_subject_form": class_subject_form,
+        'subject': subject,
+        'subclass_subjects': subclass_subjects,
+        'form': form,
     }
-    return render(request, 'hod_template/add_subject_template.html', context)
+
+    return render(request, 'hod_template/manage_this_subject.html', context)
+
+
+def add_subject(request):
+    if request.method == 'POST':
+        form = AddSubjectForm(request.POST)
+        if form.is_valid():
+            subject_name = form.cleaned_data['subject_name']
+            level = form.cleaned_data['level']
+            class_obj = form.cleaned_data['class_obj']
+            subject_teacher = form.cleaned_data.get('subject_teacher')
+            
+            subject_teacher = subject_teacher.admin
+
+            if level == 'Nursery' and not subject_teacher:
+                subject_teacher = class_obj.class_teacher
+
+            subject = Subject.objects.create(subject_name=subject_name, subject_level=level)
+            ClassSubject.objects.create(subject=subject, class_obj=class_obj, subject_teacher=subject_teacher)
+            subclasses = class_obj.subclasses.all()  
+            for subclass in subclasses:
+                SubclassSubject.objects.create(subject=subject, subclass=subclass, subject_teacher=subject_teacher)
+            messages.success(request, "Subject added successfully!")
+            return redirect('manage_subject')
+        else:
+            # If form is invalid, make sure the class_obj queryset is populated based on level
+            level = request.POST.get('level')
+            form.fields['class_obj'].queryset = Classes.objects.filter(level=level)
+    else:
+        form = AddSubjectForm()
+
+    return render(request, 'hod_template/add_subject_template.html', {'form': form})
+
+
+
 
 def manage_subject(request):
     search_query = request.GET.get('search', '')
     if search_query:
         subjects = Subject.objects.filter(subject_name__icontains=search_query)
     else:
-        subjects = Subject.objects.all()
+        subjects = Subject.objects.all().prefetch_related('class_subjects__class_obj', 'class_subjects__subject_teacher', 'subclass_subjects__subclass', 'subclass_subjects__subject_teacher')
 
     context = {
         'subjects': subjects
@@ -731,15 +753,15 @@ def delete_subject(request, subject_id):
 def get_classes_for_level(request):
     level = request.GET.get('level')
     classes = Classes.objects.filter(level=level).order_by('class_name')
-    context = {'classes': classes}
-    html = render_to_string('hod_template/class_options.html', context)
-    return HttpResponse(html)
+    class_options = [{'id': cls.id, 'name': cls.class_name} for cls in classes]
+    return JsonResponse({"class_options": class_options})
+
 
 def get_classes_for_levels(request):
     level = request.GET.get('level')
     classes = Classes.objects.filter(level=level)
-    classes_options = ''.join([f'<option value="{cls.id}">{cls.name}</option>' for cls in classes])
-    return JsonResponse({'classes_options': classes_options})
+    classes_options = [{"id": cls.id, "name": cls.class_name} for cls in classes]
+    return JsonResponse({"classes_options": classes_options})
 
 def get_subclasses_for_class(request):
     class_id = request.GET.get('class_id')

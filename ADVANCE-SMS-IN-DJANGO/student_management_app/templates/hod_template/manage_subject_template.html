@@ -63,17 +63,35 @@ Manage Subjects
                                     <td>{{ subject.id }}</td>
                                     <td>{{ subject.subject_name }}</td>
                                     <td>
-                                        {% if subject.class_id %}
-                                            {{ subject.class_id.class_name }}
-                                        {% elif subject.subclass_id %}
-                                            {{ subject.subclass_id.subclass_name }} ({{ subject.subclass_id.subclass_code }})
+                                        {% if subject.class_subjects.exists %}
+                                            {% for class_subject in subject.class_subjects.all %}
+                                                {{ class_subject.class_obj.class_name }}<br>
+                                            {% endfor %}
+                                        {% elif subject.subclass_subjects.exists %}
+                                            {% for subclass_subject in subject.subclass_subjects.all %}
+                                                {{ subclass_subject.subclass.subclass_name }} ({{ subclass_subject.subclass.subclass_code }})<br>
+                                            {% endfor %}
                                         {% else %}
                                             Not Assigned
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if subject.staff_id %}
-                                            {{ subject.staff_id.first_name }} {{ subject.staff_id.last_name }}
+                                        {% if subject.class_subjects.exists %}
+                                            {% for class_subject in subject.class_subjects.all %}
+                                                {% if class_subject.subject_teacher %}
+                                                    {{ class_subject.subject_teacher.first_name }} {{ class_subject.subject_teacher.last_name }}<br>
+                                                {% else %}
+                                                    Not Assigned
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% elif subject.subclass_subjects.exists %}
+                                            {% for subclass_subject in subject.subclass_subjects.all %}
+                                                {% if subclass_subject.subject_teacher %}
+                                                    {{ subclass_subject.subject_teacher.first_name }} {{ subclass_subject.subject_teacher.last_name }}<br>
+                                                {% else %}
+                                                    Not Assigned
+                                                {% endif %}
+                                            {% endfor %}
                                         {% else %}
                                             Not Assigned
                                         {% endif %}

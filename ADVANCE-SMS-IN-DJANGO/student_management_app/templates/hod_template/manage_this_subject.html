@@ -1,0 +1,69 @@
+{% extends 'hod_template/base_template.html' %}
+
+{% block page_title %}
+Manage {{ subject.subject_name }}
+{% endblock page_title %}
+
+{% block main_content %}
+<section class="content">
+    <div class="container-fluid">
+        <a class="btn btn-primary" href="{% url 'manage_subject' %}" role="button">Back to Manage Subjects</a>
+        <br/>&nbsp;
+        {% if messages %}
+        <div class="form-group">
+            <div class="col-12">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Manage Subclasses for {{ subject.subject_name }}</h3>
+                    </div>
+                    <div class="card-body table-responsive p-0">
+                        <table class="table table-hover text-nowrap">
+                            <thead>
+                                <tr>
+                                    <th>Subclass Name</th>
+                                    <th>Subject Teacher</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if subclass_subjects %}
+                                {% for subclass_subject in subclass_subjects %}
+                                <tr>
+                                    <td>{{ subclass_subject.subclass.subclass_name }} ({{ subclass_subject.subclass.subclass_code }})</td>
+                                    <td>{{ subclass_subject.subject_teacher.get_full_name }}</td>
+                                    <td>
+                                        <form method="POST" action="{% url 'manage_this_subject' subject.id %}" style="display:inline;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="subclass_subject_id" value="{{ subclass_subject.id }}">
+                                            {{ form.subject_teacher }}
+                                            <button type="submit" class="btn btn-sm btn-success">Update</button>
+                                        </form>
+                                        <a href="{% url 'delete_subclass_subject' subclass_subject.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');">Delete</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr><td colspan="3">No subclass subjects found</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

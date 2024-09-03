@@ -2,12 +2,47 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.forms import Form
-from student_management_app.models import (Classes, Grade, SessionYearModel, Subject, ClassSubject,
+from student_management_app.models import (Classes, Grade, SessionYearModel, Subject, ClassSubject,Staffs,
                                            Students, SubClasses)
 
 CustomUser = get_user_model()
 
 
+class AddSubjectForm(forms.ModelForm):
+    class Meta:
+        model = Subject
+        fields = ['subject_name', 'level', 'class_obj', 'subject_teacher']
+
+    level = forms.ChoiceField(choices=Classes.LEVEL_CHOICES, label="Level")
+    class_obj = forms.ModelChoiceField(queryset=Classes.objects.none(), label="Class")
+    subject_teacher = forms.ModelChoiceField(queryset=Staffs.objects.none(), required=False, label="Subject Teacher")
+
+    def __init__(self, *args, **kwargs):
+        super(AddSubjectForm, self).__init__(*args, **kwargs)
+        self.fields['subject_name'].widget.attrs.update({'class': 'form-control'})
+        self.fields['level'].widget.attrs.update({'class': 'form-select custom-select'})
+        self.fields['class_obj'].widget.attrs.update({'class': 'form-select custom-select'})
+        self.fields['subject_teacher'].widget.attrs.update({'class': 'form-select custom-select'})
+        
+        # Ensure queryset is populated based on level if POST data is provided
+        if 'level' in self.data:
+            try:
+                level = self.data.get('level')
+                self.fields['class_obj'].queryset = Classes.objects.filter(level=level)
+            except (ValueError, TypeError):
+                self.fields['class_obj'].queryset = Classes.objects.none()
+        elif self.instance.pk:
+            self.fields['class_obj'].queryset = Classes.objects.filter(level=self.instance.level)
+        
+        self.fields['subject_teacher'].queryset = Staffs.objects.all()
+
+class EditSubclassSubjectForm(forms.Form):
+    subclass_subject_id = forms.IntegerField(widget=forms.HiddenInput())
+    subject_teacher = forms.ModelChoiceField(queryset=Staffs.objects.all(), required=True, label="Subject Teacher", widget=forms.Select(attrs={'class': 'form-select custom-select'}))
+
+    def __init__(self, *args, **kwargs):
+        super(EditSubclassSubjectForm, self).__init__(*args, **kwargs)
+        self.fields['subject_teacher'].widget.attrs.update({'class': 'form-control form-control-sm'})
 class GradeForm(forms.ModelForm):
     class Meta:
         model = Grade
@@ -77,13 +112,25 @@ class SubjectForm(forms.ModelForm):
         fields = ['subject_name', 'class_level']
 
 class ClassSubjectForm(forms.ModelForm):
-    class_id = forms.ModelChoiceField(queryset=Classes.objects.none())
-    subject_teacher = forms.ModelChoiceField(queryset=CustomUser.objects.filter(user_type='2'))
+    class_level = forms.ChoiceField(choices=[('Nursery', 'Nursery'), ('Primary', 'Primary'), ('Secondary', 'Secondary')], required=True)
+    class_id = forms.ModelChoiceField(queryset=Classes.objects.none(), required=True)
+    subject_teacher = forms.ModelChoiceField(queryset=CustomUser.objects.filter(user_type='2'), required=False)
 
     class Meta:
         model = ClassSubject
         fields = ['class_id', 'subject_teacher']
-    
+
+    def __init__(self, *args, **kwargs):
+        class_level = kwargs.pop('class_level', None)  # Retrieve class_level from kwargs
+        super(ClassSubjectForm, self).__init__(*args, **kwargs)
+        
+        if class_level:
+            self.fields['class_id'].queryset = Classes.objects.filter(level=class_level)  # Set queryset based on level
+
+        # Hide subject teacher field initially if not Nursery
+        if class_level != 'Nursery':
+            self.fields['subject_teacher'].widget = forms.HiddenInput()
+
 
 class DateInput(forms.DateInput):
     input_type = "date"

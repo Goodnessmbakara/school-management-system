@@ -1,26 +1,65 @@
 {% extends 'hod_template/base_template.html' %}
-
-{% block page_title %}Add Subject{% endblock page_title %}
+{% block page_title %}Add Subject{% endblock %}
 
 {% block main_content %}
-{% load static %}
-
 <section class="content">
     <div class="container-fluid">
         <div class="row justify-content-center">
             <div class="col-md-8">
-                <div class="card card-primary">
-                    <div class="card-header">
-                        <h3 class="card-title">Add New Subject</h3>
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="card-title mb-0">Add New Subject</h3>
                     </div>
-                    <form role="form" method="POST" action="{% url 'add_subject' %}">
+                    <form method="POST" action="{% url 'add_subject' %}">
                         {% csrf_token %}
                         <div class="card-body">
-                            {{ subject_form.as_p }}
-                            {{ class_subject_form.as_p }}
+                            {% if messages %}
+                                <div class="alert alert-danger" role="alert">
+                                    {% for message in messages %}
+                                        {{ message }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="mb-3">
+                                <label for="id_subject_name" class="form-label">Subject Name</label>
+                                {{ form.subject_name }}
+                                {% if form.subject_name.errors %}
+                                    <div class="text-danger">
+                                        {{ form.subject_name.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="id_level" class="form-label">Level</label>
+                                {{ form.level }}
+                                {% if form.level.errors %}
+                                    <div class="text-danger">
+                                        {{ form.level.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="id_class_obj" class="form-label">Class</label>
+                                {{ form.class_obj }}
+                                {% if form.class_obj.errors %}
+                                    <div class="text-danger">
+                                        {{ form.class_obj.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="id_subject_teacher" class="form-label">Subject Teacher</label>
+                                {{ form.subject_teacher }}
+                                {% if form.subject_teacher.errors %}
+                                    <div class="text-danger">
+                                        {{ form.subject_teacher.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div id="class-container"></div>
                         </div>
-                        <div class="card-footer">
-                            <button type="submit" class="btn btn-primary">Add Subject</button>
+                        <div class="card-footer text-end">
+                            <button type="submit" class="btn btn-success">Submit</button>
                         </div>
                     </form>
                 </div>
@@ -28,74 +67,44 @@
         </div>
     </div>
 </section>
+{% endblock %}
 
-<script src="{% static 'js/jquery.min.js' %}"></script>
+{% block custom_css %}
+<style>
+    .custom-select, .form-control {
+        padding: 0.375rem 1.75rem 0.375rem 0.75rem;
+        border-radius: 0.25rem;
+        border: 1px solid #ced4da;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
+    .form-select:focus, .form-control:focus {
+        border-color: #80bdff;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     $(document).ready(function() {
-        $('#id_class_level').change(function() {
+        $('#id_level').change(function() {
             var level = $(this).val();
-            if (level) {
-                $.ajax({
-                    url: '{% url "get-classes-for-level" %}',
-                    data: { level: level },
-                    success: function(data) {
-                        var classSelect = $('#id_class_id');
-                        classSelect.empty();
-                        classSelect.append('<option value="">Select Class</option>');
-                        $.each(data.classes_options, function(index, option) {
-                            classSelect.append('<option value="' + option.id + '">' + option.name + '</option>');
-                        });
-                        $('#classSelectGroup').show();
-                        $('#subclassSelectGroup').hide();
-                        $('#subjectTeacherGroup').hide();
-                    }
-                });
-            } else {
-                $('#classSelectGroup').hide();
-                $('#subclassSelectGroup').hide();
-                $('#subjectTeacherGroup').hide();
-            }
-        });
-
-        $('#id_class_id').change(function() {
-            var classId = $(this).val();
-            if (classId) {
-                $.ajax({
-                    url: '{% url "get-subclasses-for-class" %}',
-                    data: { class_id: classId },
-                    success: function(data) {
-                        var subclassSelect = $('#id_subclass_id');
-                        subclassSelect.empty();
-                        subclassSelect.append('<option value="">Select Subclass</option>');
-                        $.each(data.subclasses_options, function(index, option) {
-                            subclassSelect.append('<option value="' + option.id + '">' + option.name + '</option>');
-                        });
-                        if (data.subclasses_options.length > 0) {
-                            $('#subclassSelectGroup').show();
-                            $('#subjectTeacherGroup').hide();
-                        } else {
-                            $('#subclassSelectGroup').hide();
-                            $('#subjectTeacherGroup').show();
-                        }
-                    }
-                });
-
-                $.ajax({
-                    url: '{% url "check-subclass-existence" classId %}'.replace('classId', classId),
-                    success: function(data) {
-                        if (data.has_subclasses) {
-                            $('#subjectTeacherGroup').hide();
-                        } else {
-                            $('#subjectTeacherGroup').show();
-                        }
-                    }
-                });
-            } else {
-                $('#subclassSelectGroup').hide();
-                $('#subjectTeacherGroup').hide();
-            }
+            $.ajax({
+                url: "{% url 'get_classes_for_level' %}",
+                data: { 'level': level },
+                success: function(data) {
+                    var class_select = $('#id_class_obj');
+                    class_select.empty();
+                    $.each(data.class_options, function(index, option) {
+                        class_select.append(new Option(option.name, option.id));
+                    });
+                }
+            });
         });
     });
 </script>
-
-{% endblock main_content %}
+{% endblock %}
