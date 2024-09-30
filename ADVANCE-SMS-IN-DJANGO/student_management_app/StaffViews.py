@@ -1,33 +1,40 @@
-from django.shortcuts import render, redirect
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.contrib import messages
-from django.core.files.storage import FileSystemStorage #To upload Profile Picture
-from django.urls import reverse
-from django.shortcuts import get_object_or_404, render
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
-from django.core import serializers
 import json
 
-from student_management_app.models import (CustomUser, 
-    Staffs, Classes, Subject, Students,
-    SessionYearModel, Attendance, AttendanceReport, LeaveReportStaff, FeedBackStaffs, StudentResult)
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core import serializers
+from django.core.files.storage import \
+    FileSystemStorage  # To upload Profile Picture
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+from student_management_app.models import (Attendance, AttendanceReport,
+                                           Classes, ClassSubject, CustomUser,
+                                           FeedBackStaffs, LeaveReportStaff,SubclassSubject,
+                                           SessionYearModel, Staffs,
+                                           StudentResult, Students, Subject)
 
 
 @login_required
+@login_required
 def staff_home(request):
-    # Fetch all Subjects for this staff
-    subjects = Subject.objects.filter(staff_id=request.user.id)
+    # Fetch all ClassSubjects related to this staff
+    class_subjects = ClassSubject.objects.filter(subject_teacher=request.user)
     
-    # Get unique class IDs
-    class_ids = subjects.values_list('class_id', flat=True).distinct()
+    # Get unique class and subject IDs
+    class_ids = class_subjects.values_list('class_obj_id', flat=True).distinct()
+    subject_ids = class_subjects.values_list('subject_id', flat=True).distinct()
 
-    # Count students and subjects under this staff
+    # Fetch all Subjects
+    subjects = Subject.objects.filter(id__in=subject_ids)
+    
+    # Count students under this staff
     students_count = Students.objects.filter(class_id__in=class_ids).count()
     subject_count = subjects.count()
 
-    # Fetch all Attendance records for these subjects
-    attendance_count = Attendance.objects.filter(subject_id__in=subjects).count()
+    # Fetch all Attendance records for these class subjects
+    attendance_count = Attendance.objects.filter(class_subject_id__in=class_subjects).count()
 
     staff = get_object_or_404(Staffs, admin=request.user)
     # Fetch approved leaves for this staff
@@ -37,9 +44,10 @@ def staff_home(request):
     subject_list = []
     attendance_list = []
     for subject in subjects:
-        attendance_count_subject = Attendance.objects.filter(subject_id=subject.id).count()
+        # Count attendance per subject
+        subject_attendance = Attendance.objects.filter(class_subject__subject=subject).count()
         subject_list.append(subject.subject_name)
-        attendance_list.append(attendance_count_subject)
+        attendance_list.append(subject_attendance)
 
     # Students' attendance in these classes
     student_list = []
@@ -47,8 +55,8 @@ def staff_home(request):
     student_attendance_absent_list = []
     students = Students.objects.filter(class_id__in=class_ids)
     for student in students:
-        attendance_present_count = AttendanceReport.objects.filter(student_id=student.id, status=True).count()
-        attendance_absent_count = AttendanceReport.objects.filter(student_id=student.id, status=False).count()
+        attendance_present_count = AttendanceReport.objects.filter(student_id=student, status=True).count()
+        attendance_absent_count = AttendanceReport.objects.filter(student_id=student, status=False).count()
         student_list.append(f"{student.admin.first_name} {student.admin.last_name}")
         student_attendance_present_list.append(attendance_present_count)
         student_attendance_absent_list.append(attendance_absent_count)
@@ -69,10 +77,20 @@ def staff_home(request):
 
 
 def staff_take_attendance(request):
-    subject = Subject.objects.filter(staff_id=request.user.id)
+    # Fetch ClassSubjects linked to this staff
+    class_subjects = ClassSubject.objects.filter(subject_teacher=request.user)
+
+    # Collect all subject IDs from the fetched ClassSubjects
+    subject_ids = class_subjects.values_list('subject', flat=True).distinct()
+
+    # Fetch Subjects based on the IDs collected
+    subjects = Subject.objects.filter(id__in=subject_ids)
+    
+    # Fetch all session years
     session_years = SessionYearModel.objects.all()
+
     context = {
-        "subject": subject,
+        "subjects": subjects,
         "session_years": session_years
     }
     return render(request, "staff_template/take_attendance_template.html", context)
@@ -194,13 +212,25 @@ def save_attendance_data(request):
 
 
 def staff_update_attendance(request):
-    subject = Subject.objects.filter(staff_id=request.user.id)
+    # Fetch ClassSubjects linked to this staff member
+    class_subjects = ClassSubject.objects.filter(subject_teacher=request.user)
+
+    # Collect all subject IDs from the fetched ClassSubjects
+    subject_ids = class_subjects.values_list('subject', flat=True).distinct()
+
+    # Fetch Subjects based on the IDs collected
+    subjects = Subject.objects.filter(id__in=subject_ids)
+    
+    # Fetch all session years
     session_years = SessionYearModel.objects.all()
+
     context = {
-        "subject": subject,
+        "subjects": subjects,
         "session_years": session_years
     }
     return render(request, "staff_template/update_attendance_template.html", context)
+
+
 
 @csrf_exempt
 def get_attendance_dates(request):
@@ -312,10 +342,25 @@ def staff_profile_update(request):
 
 
 def staff_add_result(request):
-    subject = Subject.objects.filter(staff_id=request.user.id)
-    session_years = SessionYearModel.objects.all()
+    # Fetch ClassSubjects and SubclassSubjects linked to this staff member
+    class_subjects = ClassSubject.objects.filter(subject_teacher=request.user)
+    subclass_subjects = SubclassSubject.objects.filter(subject_teacher=request.user)
+
+    # Collect all subject IDs from both fetched sets
+    subject_ids = list(class_subjects.values_list('subject', flat=True).distinct())
+    subject_ids.extend(list(subclass_subjects.values_list('subject', flat=True).distinct()))
+
+    # Remove duplicates if any
+    subject_ids = list(set(subject_ids))
+
+    # Fetch Subjects based on the IDs collected
+    subjects = Subject.objects.filter(id__in=subject_ids)
+    
+    # Fetch all session years, assuming to show only current ones
+    session_years = SessionYearModel.objects.filter(is_current=True)
+
     context = {
-        "subject": subject,
+        "subjects": subjects,
         "session_years": session_years,
     }
     return render(request, "staff_template/add_result_template.html", context)

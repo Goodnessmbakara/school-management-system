@@ -18,7 +18,6 @@ Add Student
                     <div class="card-header">
                         <h3 class="card-title">Register New Student</h3>
                     </div>
-
                     <form method="POST" action="{% url 'add_student' %}" enctype="multipart/form-data">
                         {% csrf_token %}
                         <div class="card-body">
@@ -26,66 +25,50 @@ Add Student
                                 <div class="form-group">
                                     <div class="col-12">
                                         {% for message in messages %}
-                                            {% if message.tags == "error" %}
-                                                <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-top: 10px;">
-                                                    {{ message }}
-                                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                                        <span aria-hidden="true">&times;</span>
-                                                    </button>
-                                                </div>
-                                            {% elif message.tags == "success" %}
-                                                <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin-top: 10px;">
-                                                    {{ message }}
-                                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                                        <span aria-hidden="true">&times;</span>
-                                                    </button>
-                                                </div>
-                                            {% endif %}
+                                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="margin-top: 10px;">
+                                                {{ message }}
+                                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
                                         {% endfor %}
                                     </div>
                                 </div>
                             {% endif %}
-
-                            {% if form.errors %}
-                                <div class="alert alert-danger">
-                                    <ul>
-                                        {% for error in form.non_field_errors %}
-                                            <li>{{ error }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                </div>
-                            {% endif %}
-                                
                             <div class="form-group">
                                 <label for="id_email">Email address</label>
                                 {{ form.email }}
                             </div>
-
                             <div class="form-group">
                                 <label for="id_username">Username</label>
                                 {{ form.username }}
                             </div>
-                            {% for field in form %}
-                                {% if field.name != 'class_id' and field.name != 'subclass_id' and field.name != 'username' and field.name != 'email' %}
-                                    <div class="form-group">
-                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                        {{ field|add_class:"form-control" }}
-                                        {% if field.help_text %}
-                                            <small class="form-text text-muted">{{ field.help_text }}</small>
-                                        {% endif %}
-                                    </div>
-                                {% endif %}
+                            {% for field in form.visible_fields %}
+                                <div class="form-group">
+                                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {{ field|add_class:"form-control" }}
+                                    {% if field.help_text %}
+                                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                                    {% endif %}
+                                </div>
                             {% endfor %}
-                           
-
-                            <div id="class-container" class="form-group mb-3">
-                                <!-- This will be filled by HTMX -->
+                            <div class="form-group mb-3">
+                                <label for="id_level">Level</label>
+                                {{ form.level }}
                             </div>
-                            <div id="subclass-container" class="form-group mb-3">
-                                <!-- This will be filled by HTMX -->
+                            <div class="form-group mb-3">
+                                <label for="id_class_obj">Class</label>
+                                <select id="id_class_obj" name="class_obj" class="form-control">
+                                    <!-- Options will be populated based on selected level -->
+                                </select>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label for="id_subclass_obj">Subclass</label>
+                                <select id="id_subclass_obj" name="subclass_obj" class="form-control">
+                                    <!-- Options will be populated based on selected class -->
+                                </select>
                             </div>
                         </div>
-
                         <div class="card-footer">
                             <button type="submit" class="btn btn-primary">Submit</button>
                         </div>
@@ -95,94 +78,36 @@ Add Student
         </div>
     </div>
 </section>
-
 {% endblock %}
 
 {% block custom_js %}
 <script src="https://unpkg.com/htmx.org"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    // Listen to HTMX swaps to handle subclass loading dynamically
-    document.body.addEventListener('htmx:afterSwap', function(event) {
-        if (event.detail.target.id === 'class-container') {
-            const classSelect = document.querySelector('#class-container select');
-            if (classSelect) {
-                classSelect.addEventListener('change', function() {
-                    const classId = this.value;
-                    htmx.ajax('GET', `{% url 'get-subclasses-for-class' %}?class_id=${classId}`, '#subclass-container');
-                });
-            }
-        }
+    const levelSelect = document.querySelector('#id_level');
+    const classSelect = document.querySelector('#id_class_obj');
+    const subclassSelect = document.querySelector('#id_subclass_obj');
+
+    levelSelect.addEventListener('change', function() {
+        const level = this.value;
+        fetchClassesForLevel(level);
     });
 
-    // Handle dynamic loading of classes based on the selected level
-    const levelSelect = document.querySelector('#id_level');
-    if (levelSelect) {
-        levelSelect.addEventListener('change', function() {
-            const level = this.value;
-            htmx.ajax('GET', `{% url 'get-classes-for-level' %}?level=${level}`, '#class-container');
-            document.querySelector('#subclass-container').innerHTML = '';
+    classSelect.addEventListener('change', function() {
+        const classId = this.value;
+        fetchSubclassesForClass(classId);
+    });
+
+    function fetchClassesForLevel(level) {
+        htmx.ajax('GET', `{% url 'get_classes_for_level' %}?level=${level}`, {
+            target: '#id_class_obj'
         });
     }
 
-    $(document).ready(function(){
-        function debounce(func, delay) {
-            let debounceTimer;
-            return function() {
-                const context = this;
-                const args = arguments;
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => func.apply(context, args), delay);
-            };
-        }
-
-        $("#id_email").keyup(debounce(function(){
-            var email = $(this).val();
-            if(email != ""){
-                $.ajax({
-                    url: '{% url 'check_email_exist' %}',
-                    type: 'POST',
-                    data: {
-                        email: email,
-                        csrfmiddlewaretoken: '{{ csrf_token }}'
-                    },
-                    success: function(response){
-                        $(".email_error").remove();
-                        if(response == "True"){
-                            $("<span class='email_error' style='color: red; padding: 5px; font-weight: bold;'> Email Not Available. </span>").insertAfter("#id_email");
-                        } else {
-                            $("<span class='email_error' style='color: green; padding: 5px; font-weight: bold;'> Email Available. </span>").insertAfter("#id_email");
-                        }
-                    }
-                });
-            } else {
-                $(".email_error").remove();
-            }
-        }, 500));
-
-        $("#id_username").keyup(debounce(function(){
-            var username = $(this).val();
-            if(username != ""){
-                $.ajax({
-                    url: '{% url 'check_username_exist'%}',
-                    type: 'POST',
-                    data: {
-                        username: username,
-                        csrfmiddlewaretoken: '{{ csrf_token }}'
-                    },
-                    success: function(response){
-                        $(".username_error").remove();
-                        if(response == "True"){
-                            $("<span class='username_error' style='color: red; padding: 5px; font-weight: bold;'> Username Not Available. </span>").insertAfter("#id_username");
-                        } else {
-                            $("<span class='username_error' style='color: green; padding: 5px; font-weight: bold;'> Username Available. </span>").insertAfter("#id_username");
-                        }
-                    }
-                });
-            } else {
-                $(".username_error").remove();
-            }
-        }, 500));
-    });
+    function fetchSubclassesForClass(classId) {
+        htmx.ajax('GET', `{% url 'get_subclasses_for_class' %}?class_id=${classId}`, {
+            target: '#id_subclass_obj'
+        });
+    }
 </script>
 {% endblock %}

@@ -66,6 +66,7 @@ urlpatterns = [
     path('subclasses/add/<int:class_id>/', HodViews.add_subclass, name='add_subclass'),
     path('subclasses/<int:subclass_id>/edit/', HodViews.edit_subclass, name='edit_subclass'),
     path('get-subclasses/<int:class_id>/', HodViews.get_subclasses, name='get_subclasses'),
+    path('get-subclasses-for-class/', HodViews.get_subclasses_for_class, name='get_subclasses_for_class'),
     path('get_classes_or_subclasses/', HodViews.get_classes_or_subclasses, name = 'get-classes-or-subclasses'),
     path('get-classes-for-level/', HodViews.get_classes_for_levels, name='get-classes-for-level'),
     path('get-subclasses-for-class/', HodViews.get_subclasses_for_classs, name='get-subclasses-for-class'),

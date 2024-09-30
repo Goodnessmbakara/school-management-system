@@ -79,6 +79,7 @@ def admin_home(request):
     return render(request, "hod_template/home_content.html", context)
 
 
+
 def add_staff(request):
     if request.method != "POST":
         return render(request, "hod_template/add_staff_template.html")
@@ -89,55 +90,48 @@ def add_staff(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         address = request.POST.get('address')
-        
+
         context = {
-                'email': email,
-                'username': username,
-                'first_name': first_name,
-                'last_name': last_name,
-                'address': address
-            }
-        
+            'email': email,
+            'username': username,
+            'first_name': first_name,
+            'last_name': last_name,
+            'address': address
+        }
+
         if not password:
             messages.error(request, "Password is required!")
             return render(request, 'hod_template/add_staff_template.html', context=context)
 
-        if CustomUser.objects.filter(email=email).exists() or CustomUser.objects.filter(username=username).exists():
-            messages.error(request, "Email or username already Exist! Log In or use another email!")
-            return render(request,'hod_template/add_staff_template.html', context=context)
-        
         try:
+            # Using transaction.atomic to ensure database integrity
             with transaction.atomic():
-                
-                user = CustomUser.objects.create_user(
+                user = CustomUser.objects.filter(email=email).first() or CustomUser.objects.filter(username=username).first()
+                if user:
+                    messages.info(request, "User already exists. Checking for staff entry...")
+                    if Staffs.objects.filter(admin=user).exists():
+                        messages.error(request, "Staff entry for this user already exists!")
+                        return render(request, 'hod_template/add_staff_template.html', context=context)
+                else:
+                    user = CustomUser.objects.create_user(
                         username=username,
                         password=password,
                         email=email,
                         first_name=first_name,
                         last_name=last_name,
                         user_type=2
-                        )
-                
-                 # Check if the user was created successfully
-                if not user:
-                    messages.error(request, "Failed to create user!")
-                    return render(request, 'hod_template/add_staff_template.html', context=context)
+                    )
 
-                 # Check if the user already has a staff entry
-                if Staffs.objects.filter(admin=user).exists():
-                    messages.error(request, "Staff entry for this user already exists!")
-                    return render(request, 'hod_template/add_staff_template.html', context=context)
+                current_session_year = SessionYearModel.objects.filter(is_current=True).first()
+                staff = Staffs.objects.create(admin=user, address=address, session_year_id=current_session_year)
 
-                staff = Staffs.objects.create(admin=user, address=address)
-                # Check if the staff was created successfully
-                if not staff:
-                    messages.error(request, "Failed to create staff entry!")
-                    return render(request, 'hod_template/add_staff_template.html', context=context)
-            messages.success(request, 'Staff added successfully.')
-            return redirect('manage_staff')
+                messages.success(request, 'Staff added successfully.')
+                return redirect('manage_staff')
+
         except Exception as e:
-            messages.error(request, f"Failed to Add Staff!{e}")
-            return render(request,'hod_template/add_staff_template.html', context=context)
+            messages.error(request, f"Failed to Add Staff! Error: {str(e)}")
+            return render(request, 'hod_template/add_staff_template.html', context=context)
+
 
 
 
@@ -517,6 +511,12 @@ def get_classes_or_subclasses(request):
         subclasses = SubClasses.objects.filter(parent_class__level=level_id)
         return render(request, 'hod_template/subclass_options.html', {'subclasses': subclasses})
 
+def get_subclasses_for_class(request):
+    class_id = request.GET.get('class_id')
+    subclasses = SubClasses.objects.filter(parent_class_id=class_id)
+    subclass_list = [{'id': sub.id, 'name': sub.subclass_name} for sub in subclasses]
+    return JsonResponse({'subclasses': subclass_list})
+
 def check_subclass_existence(request, class_id):
     has_subclasses = SubClasses.objects.filter(parent_class_id=class_id).exists()
     return JsonResponse({'has_subclasses': has_subclasses})
@@ -693,8 +693,6 @@ def add_subject(request):
     return render(request, 'hod_template/add_subject_template.html', {'form': form})
 
 
-
-
 def manage_subject(request):
     search_query = request.GET.get('search', '')
     if search_query:
@@ -749,6 +747,7 @@ def delete_subject(request, subject_id):
     except:
         messages.error(request, "Failed to Delete Subject.")
         return redirect('manage_subject')
+
 
 def get_classes_for_level(request):
     level = request.GET.get('level')
